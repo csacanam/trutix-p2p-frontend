@@ -12,15 +12,17 @@ export function Dashboard() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [withdrawAddress, setWithdrawAddress] = useState('');
   const [withdrawError, setWithdrawError] = useState('');
+  const [isCopied, setIsCopied] = useState(false);
 
   const { address } = useAccount();
   const { connect } = useConnect();
 
-  const walletAddress = '0x1234...5678'; // Example address
-
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(walletAddress);
-    // Could add a toast notification here
+    if (address) {
+      navigator.clipboard.writeText(address);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
 
   const handleWithdraw = () => {
@@ -304,7 +306,11 @@ export function Dashboard() {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-lg font-medium text-gray-900">Your Balance</h2>
-              <p className="text-3xl font-bold text-gray-900">0.00 USDC</p>
+              {address ? (
+                <p className="text-3xl font-bold text-gray-900">0.00 USDC</p>
+              ) : (
+                <p className="text-sm text-gray-500">Please login or sign up to view your balance.</p>
+              )}
             </div>
             <div className="flex gap-2">
               <button 
@@ -327,70 +333,87 @@ export function Dashboard() {
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
-          <Link
-            to="/create-trade"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Create New Trade
-          </Link>
+          {address ? (
+            <Link
+              to="/create-trade"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Trade
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Trade
+            </button>
+          )}
         </div>
 
         <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">
-          {trades.length > 0 ? (
-            trades.map((trade) => (
-              <Link
-                key={trade.id}
-                to={`/trade/${trade.id}`}
-                className="block hover:bg-gray-50"
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-blue-600 truncate">
-                          {trade.event.name}
-                        </p>
-                        <StatusBadge status={trade.status} role={trade.role} />
+          {address ? (
+            trades.length > 0 ? (
+              trades.map((trade) => (
+                <Link
+                  key={trade.id}
+                  to={`/trade/${trade.id}`}
+                  className="block hover:bg-gray-50"
+                >
+                  <div className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium text-blue-600 truncate">
+                            {trade.event.name}
+                          </p>
+                          <StatusBadge status={trade.status} role={trade.role} />
+                        </div>
+                        <div className="mt-2">
+                          <div className="flex items-center text-sm text-gray-500">
+                            <p>{trade.event.city} • {new Date(trade.event.date).toLocaleDateString()}</p>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between text-sm">
+                            <div className="text-gray-500">
+                              {trade.event.locality} • {trade.event.numTickets} {trade.event.numTickets === 1 ? 'ticket' : 'tickets'}
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-gray-900">
+                                {(trade.event.pricePerTicket * trade.event.numTickets).toFixed(2)} USDC
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {trade.event.pricePerTicket.toFixed(2)} USDC per ticket
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-2">
-                        <div className="flex items-center text-sm text-gray-500">
-                          <p>{trade.event.city} • {new Date(trade.event.date).toLocaleDateString()}</p>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-sm">
-                          <div className="text-gray-500">
-                            {trade.event.locality} • {trade.event.numTickets} {trade.event.numTickets === 1 ? 'ticket' : 'tickets'}
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium text-gray-900">
-                              {(trade.event.pricePerTicket * trade.event.numTickets).toFixed(2)} USDC
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {trade.event.pricePerTicket.toFixed(2)} USDC per ticket
-                            </div>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-sm">
+                      <div className="text-gray-500">
+                        {trade.role === 'seller' ? (
+                          <>Buyer: {trade.buyer.name}</>
+                        ) : (
+                          <>Seller: {trade.seller.name}</>
+                        )}
+                      </div>
+                      <div className="text-gray-500">
+                        Created {new Date(trade.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center justify-between text-sm">
-                    <div className="text-gray-500">
-                      {trade.role === 'seller' ? (
-                        <>Buyer: {trade.buyer.name}</>
-                      ) : (
-                        <>Seller: {trade.seller.name}</>
-                      )}
-                    </div>
-                    <div className="text-gray-500">
-                      Created {new Date(trade.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))
+                </Link>
+              ))
+            ) : (
+              <div className="p-6 text-center text-gray-500">
+                No trades yet. Create your first trade to get started!
+              </div>
+            )
           ) : (
-            <div className="p-6 text-center text-gray-500">
-              No trades yet. Create your first trade to get started!
+            <div className="p-6 text-center">
+              <p className="text-lg font-medium text-gray-900 mb-2">Log in to view your trades.</p>
+              <p className="text-sm text-gray-500">Create or access your account to see your activity.</p>
             </div>
           )}
         </div>
@@ -434,12 +457,16 @@ export function Dashboard() {
                     <QrCode className="h-32 w-32 text-gray-900" />
                   </div>
                   <div className="flex items-center justify-between bg-white rounded-md p-2">
-                    <code className="text-sm text-gray-900">{walletAddress}</code>
+                    <code className="text-sm text-gray-900">{address || '0x1234...5678'}</code>
                     <button
                       onClick={copyToClipboard}
                       className="ml-2 p-1 text-gray-400 hover:text-gray-500"
                     >
-                      <Copy className="h-5 w-5" />
+                      {isCopied ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <Copy className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -480,7 +507,7 @@ export function Dashboard() {
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-yellow-700">
-                        Only send USDC on Base network. Minimum deposit: 10 USDC
+                        Only send USDC on Base network. No minimum deposit.
                       </p>
                     </div>
                   </div>

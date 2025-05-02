@@ -1,14 +1,19 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Ticket, LogOut } from 'lucide-react';
+import { useConnect, useAccount, useDisconnect } from 'wagmi';
+import { cbWalletConnector } from '../wagmi';
 
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isPublicPage = location.pathname === '/' || location.pathname === '/faq';
+  const { connect } = useConnect();
+  const { address } = useAccount();
+  const { disconnect } = useDisconnect();
 
   const handleLogout = () => {
-    // Handle logout logic here
+    disconnect();
     navigate('/');
   };
 
@@ -26,20 +31,20 @@ export function Layout() {
               </Link>
             </div>
             <div className="flex items-center gap-2">
-              {isPublicPage ? (
+              {!address ? (
                 <>
-                  <Link
-                    to="/login"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  <button
+                    onClick={() => connect({ connector: cbWalletConnector })}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 cursor-pointer"
                   >
                     Login
-                  </Link>
-                  <Link
-                    to="/signup"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  </button>
+                  <button
+                    onClick={() => connect({ connector: cbWalletConnector })}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 cursor-pointer"
                   >
                     Sign Up
-                  </Link>
+                  </button>
                 </>
               ) : (
                 <button

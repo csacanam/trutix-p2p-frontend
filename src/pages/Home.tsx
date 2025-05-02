@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Shield, Clock, DollarSign, CheckCircle2, Wallet, Ticket, Mail, Phone, CreditCard, UserCheck } from 'lucide-react';
+import { ArrowRight, Shield, Clock, DollarSign, CheckCircle2, Wallet as WalletIcon, Ticket, Mail, Phone, CreditCard, UserCheck } from 'lucide-react';
+import { Wallet } from '@coinbase/onchainkit/wallet';
 
 export function Home() {
   return (
     <>
+ 
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -17,14 +19,12 @@ export function Home() {
               Buy and sell event tickets directly using USDC. Smart contracts hold the money until the ticket is delivered.
             </p>
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-              <div className="w-full sm:w-auto">
-                <Link to="/dashboard" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                  Start a Secure Trade
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <Link to="/dashboard" className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                  Create Trade
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
-              </div>
-              <div className="mt-3 sm:mt-0 sm:ml-3 w-full sm:w-auto">
-                <Link to="/faq" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200">
+                <Link to="/faq" className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200">
                   How It Works
                 </Link>
               </div>
@@ -55,7 +55,7 @@ export function Home() {
 
               <div className="text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white mx-auto">
-                  <Wallet className="h-6 w-6" />
+                  <WalletIcon className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Secure Payment</h3>
                 <p className="mt-2 text-base text-gray-500">Buyer deposits USDC into smart contract</p>

@@ -5,6 +5,7 @@ import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } 
 import { cbWalletConnector } from '../wagmi';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
 import { Transaction } from '@coinbase/onchainkit/transaction';
+import { QRCodeSVG } from 'qrcode.react';
 
 const USDC_ADDRESS = import.meta.env.VITE_USDC_ADDRESS;
 
@@ -568,7 +569,20 @@ export function Dashboard() {
               <div className="mt-6 space-y-4">
                 <div className="rounded-lg bg-gray-50 p-4">
                   <div className="flex justify-center mb-4">
-                    <QrCode className="h-32 w-32 text-gray-900" />
+                    {address ? (
+                      <div className="p-4 bg-white rounded-lg">
+                        <QRCodeSVG
+                          value={address}
+                          size={128}
+                          level="H"
+                          includeMargin={true}
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-32 w-32 flex items-center justify-center bg-gray-200 rounded-lg">
+                        <p className="text-sm text-gray-500 text-center">Please connect your wallet to see QR code</p>
+                      </div>
+                    )}
                   </div>
                   <div className="flex items-center justify-between bg-white rounded-md p-2">
                     <code className="text-sm text-gray-900">{address || '0x1234...5678'}</code>
@@ -869,7 +883,7 @@ export function Dashboard() {
                             <li>Only withdraw to a wallet address on the Base network</li>
                             <li>Make sure your wallet supports Base network and USDC</li>
                             <li>Double check the address before confirming</li>
-                            <li>Withdrawals are processed within 5 minutes</li>
+                            <li>Withdrawals are processed within 1 minute</li>
                           </ul>
                         </div>
                       </div>

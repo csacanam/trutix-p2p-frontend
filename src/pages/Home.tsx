@@ -103,7 +103,7 @@ export function Home() {
                   <Clock className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Instant Payouts</h3>
-                <p className="mt-2 text-base text-gray-500">Get paid instantly after ticket transfer confirmation, not days later</p>
+                <p className="mt-2 text-base text-gray-500">Get paid instantly after ticket transfer — no need to wait weeks or months.</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-transform duration-300">

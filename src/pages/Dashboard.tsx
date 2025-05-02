@@ -6,6 +6,7 @@ import { cbWalletConnector } from '../wagmi';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
 import { Transaction } from '@coinbase/onchainkit/transaction';
 import { QRCodeSVG } from 'qrcode.react';
+import trutixLogo from '../assets/trutix-logo.png';
 
 const USDC_ADDRESS = import.meta.env.VITE_USDC_ADDRESS;
 
@@ -415,6 +416,27 @@ export function Dashboard() {
   return (
     <>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
+          {address ? (
+            <Link
+              to="/create-trade"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Trade
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Create New Trade
+            </button>
+          )}
+        </div>
+
         <div className="bg-white shadow-sm rounded-lg p-6 mb-8">
           <div className="flex justify-between items-center">
             <div>
@@ -444,27 +466,6 @@ export function Dashboard() {
               </button>
             </div>
           </div>
-        </div>
-
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
-          {address ? (
-            <Link
-              to="/create-trade"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Trade
-            </Link>
-          ) : (
-            <button
-              onClick={() => setIsLoginModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Trade
-            </button>
-          )}
         </div>
 
         <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">

@@ -1,8 +1,9 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Ticket, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useConnect, useAccount, useDisconnect } from 'wagmi';
 import { cbWalletConnector } from '../wagmi';
+import trutixLogo from '../assets/trutix-logo.png';
 
 export function Layout() {
   const navigate = useNavigate();
@@ -24,10 +25,7 @@ export function Layout() {
           <div className="flex justify-between h-16">
             <div className="flex">
               <Link to="/" className="flex-shrink-0 flex items-center">
-                <div className="flex items-center gap-2">
-                  <Ticket className="h-8 w-8 text-blue-600 transform -rotate-12" />
-                  <span className="text-xl font-bold text-gray-900">Trutix</span>
-                </div>
+                <img src={trutixLogo} alt="Trutix" className="h-8 w-auto" />
               </Link>
             </div>
             <div className="flex items-center gap-2">

@@ -1,10 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, X, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAccount } from 'wagmi';
+import axios from 'axios';
+
+interface ProfileForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  countryCode: string;
+}
+
+interface ProfileErrors {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+interface UserExistsResponse {
+  success: boolean;
+  message: string;
+}
 
 export function CreateTrade() {
   const navigate = useNavigate();
+  const { address } = useAccount();
   const [step, setStep] = useState(1);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [userExists, setUserExists] = useState(false);
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    countryCode: '+1'
+  });
+  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: ''
+  });
   const [formData, setFormData] = useState({
     eventName: '',
     city: '',
@@ -16,6 +54,7 @@ export function CreateTrade() {
     pricePerTicket: '',
     buyerName: '',
     buyerEmail: '',
+    country: '',
   });
 
   const [errors, setErrors] = useState({
@@ -28,7 +67,195 @@ export function CreateTrade() {
     pricePerTicket: '',
     buyerName: '',
     buyerEmail: '',
+    country: '',
   });
+
+  // Check if user exists when address changes
+  useEffect(() => {
+    const checkUserExists = async () => {
+      if (address) {
+        try {
+          const response = await axios.get<UserExistsResponse>(`${import.meta.env.VITE_BACKEND_URL}/users/${address}`);
+          setUserExists(response.data.success);
+        } catch (error) {
+          console.error('Error checking user:', error);
+          setUserExists(false);
+        }
+      }
+    };
+
+    checkUserExists();
+  }, [address]);
+
+  const handleProfileSubmit = async () => {
+    // Validate form
+    const newErrors = {
+      firstName: !profileForm.firstName ? 'First name is required' : '',
+      lastName: !profileForm.lastName ? 'Last name is required' : '',
+      email: !profileForm.email ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email) ? 'Invalid email format' : '',
+      phone: !profileForm.phone ? 'Phone number is required' : ''
+    };
+
+    setProfileErrors(newErrors);
+
+    if (Object.values(newErrors).some(error => error)) {
+      return;
+    }
+
+    try {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/users`, {
+        address,
+        ...profileForm
+      });
+      setUserExists(true);
+      setIsProfileModalOpen(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
+  const ProfileModal = () => {
+    if (!isProfileModalOpen) return null;
+
+    return (
+      <div className="fixed inset-0 overflow-y-auto z-50">
+        <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+          <div 
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={() => setIsProfileModalOpen(false)}
+          />
+
+          <span className="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+          <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+            <div className="absolute right-0 top-0 pr-4 pt-4">
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div>
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Complete your profile to continue
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-gray-500">
+                  To participate in trades, we need a few details.
+                  This information helps us ensure secure and transparent trades between real people.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="firstName"
+                  value={profileForm.firstName}
+                  onChange={(e) => setProfileForm({ ...profileForm, firstName: e.target.value })}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+                    profileErrors.firstName ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {profileErrors.firstName && (
+                  <p className="mt-1 text-sm text-red-600">{profileErrors.firstName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="lastName"
+                  value={profileForm.lastName}
+                  onChange={(e) => setProfileForm({ ...profileForm, lastName: e.target.value })}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+                    profileErrors.lastName ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {profileErrors.lastName && (
+                  <p className="mt-1 text-sm text-red-600">{profileErrors.lastName}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+                    profileErrors.email ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {profileErrors.email && (
+                  <p className="mt-1 text-sm text-red-600">{profileErrors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                  Phone Number <span className="text-red-500">*</span>
+                </label>
+                <div className="mt-1 flex rounded-md shadow-sm">
+                  <select
+                    value={profileForm.countryCode}
+                    onChange={(e) => setProfileForm({ ...profileForm, countryCode: e.target.value })}
+                    className="flex-shrink-0 rounded-l-md border-r border-gray-300 bg-gray-50 px-3 py-2 text-gray-500 sm:text-sm"
+                  >
+                    <option value="+1">🇺🇸 +1</option>
+                    {/* TODO: Add more country codes */}
+                  </select>
+                  <input
+                    type="tel"
+                    id="phone"
+                    value={profileForm.phone}
+                    onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
+                    className={`block w-full rounded-r-md focus:border-blue-500 focus:ring-blue-500 ${
+                      profileErrors.phone ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                  />
+                </div>
+                {profileErrors.phone && (
+                  <p className="mt-1 text-sm text-red-600">{profileErrors.phone}</p>
+                )}
+              </div>
+
+              <p className="text-sm text-gray-500">
+                Your data is never shared publicly and is only used to support your transaction.
+              </p>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => setIsProfileModalOpen(false)}
+                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleProfileSubmit}
+                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Complete Profile
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -141,6 +368,35 @@ export function CreateTrade() {
     navigate('/dashboard');
   };
 
+  const handleCreateTrade = async () => {
+    if (!address) {
+      // Handle wallet not connected
+      return;
+    }
+
+    if (!userExists) {
+      setIsProfileModalOpen(true);
+      return;
+    }
+
+    // Prepare trade data
+    const tradeData = {
+      eventName: formData.eventName,
+      eventCity: formData.city,
+      eventCountry: formData.country,
+      eventDate: formData.date,
+      eventSection: formData.locality,
+      numberOfTickets: formData.numTickets,
+      ticketPlatform: formData.platform,
+      isTransferable: formData.isTransferable,
+      pricePerTicket: formData.pricePerTicket,
+    };
+
+    console.log('Creating trade with data:', tradeData);
+    // TODO: Call backend API with tradeData
+    // navigate('/dashboard');
+  };
+
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-8">
@@ -158,42 +414,40 @@ export function CreateTrade() {
 
         {/* Progress Steps */}
         <nav aria-label="Progress">
-          <ol role="list" className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             {[
               { id: 1, name: 'Ticket Info' },
               { id: 2, name: 'Set Price' },
-              { id: 3, name: 'Buyer Info' },
-              { id: 4, name: 'Review' },
-            ].map((s, index) => (
-              <li key={s.id} className="flex flex-col items-center">
-                <div className="relative flex items-center justify-center">
-                  {index !== 0 && (
-                    <div 
-                      className="absolute right-full mx-8 w-24 h-0.5 bg-gray-200"
-                      aria-hidden="true"
-                    >
-                      <div
-                        className="h-full bg-blue-600 transition-all duration-300"
-                        style={{ width: step > s.id - 1 ? '100%' : '0%' }}
-                      />
-                    </div>
-                  )}
+              { id: 3, name: 'Review' },
+            ].map((s, index, array) => (
+              <>
+                <div key={s.id} className="flex flex-col items-center">
                   <div
                     className={`${
                       step >= s.id
                         ? 'bg-blue-600'
                         : 'bg-gray-200'
-                    } h-8 w-8 rounded-full flex items-center justify-center z-10`}
+                    } h-8 w-8 rounded-full flex items-center justify-center`}
                   >
                     <span className={`text-sm ${step >= s.id ? 'text-white' : 'text-gray-600'}`}>
                       {s.id}
                     </span>
                   </div>
+                  <span className="mt-2 text-sm font-medium text-gray-900">{s.name}</span>
                 </div>
-                <span className="mt-2 text-sm font-medium text-gray-900">{s.name}</span>
-              </li>
+                {index < array.length - 1 && (
+                  <div className="flex-1 mx-4">
+                    <div className="h-0.5 bg-gray-200">
+                      <div
+                        className="h-full bg-blue-600 transition-all duration-300"
+                        style={{ width: step > s.id ? '100%' : '0%' }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
             ))}
-          </ol>
+          </div>
         </nav>
 
         {/* Step 1: Ticket Info */}
@@ -239,6 +493,26 @@ export function CreateTrade() {
                   <p className="mt-1 text-sm text-red-600">{errors.city}</p>
                 )}
               </div>
+
+              <div>
+                <label htmlFor="country" className="block text-sm font-medium text-gray-700">
+                  Country <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="country"
+                  id="country"
+                  value={formData.country}
+                  onChange={handleInputChange}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
+                    errors.country ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                />
+                {errors.country && (
+                  <p className="mt-1 text-sm text-red-600">{errors.country}</p>
+                )}
+              </div>
+
               <div>
                 <label htmlFor="date" className="block text-sm font-medium text-gray-700">
                   Date <span className="text-red-500">*</span>
@@ -439,89 +713,8 @@ export function CreateTrade() {
           </div>
         )}
 
-        {/* Step 3: Buyer Information */}
+        {/* Step 3: Review */}
         {step === 3 && (
-          <div className="space-y-6 bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-900">Buyer Information</h2>
-
-            <div>
-              <label htmlFor="buyerName" className="block text-sm font-medium text-gray-700">
-                Full Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="buyerName"
-                id="buyerName"
-                value={formData.buyerName}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
-                  errors.buyerName ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Enter buyer's full name"
-              />
-              {errors.buyerName && (
-                <p className="mt-1 text-sm text-red-600">{errors.buyerName}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="buyerEmail" className="block text-sm font-medium text-gray-700">
-                Email Address <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="email"
-                name="buyerEmail"
-                id="buyerEmail"
-                value={formData.buyerEmail}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
-                  errors.buyerEmail ? 'border-red-300' : 'border-gray-300'
-                }`}
-                placeholder="Enter buyer's email address"
-              />
-              {errors.buyerEmail && (
-                <p className="mt-1 text-sm text-red-600">{errors.buyerEmail}</p>
-              )}
-            </div>
-
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    <strong>Important:</strong> Make sure the buyer's information is correct:
-                  </p>
-                  <ul className="mt-2 list-disc pl-5 text-sm text-yellow-700">
-                    <li>Full name must match their ID for ticket transfer</li>
-                    <li>Email address will be used for ticket transfer and communication</li>
-                    <li>Double-check spelling to avoid transfer issues</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-between">
-              <button
-                onClick={() => setStep(2)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-              >
-                Back
-              </button>
-              <button
-                onClick={handleNext}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Review Trade
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Review */}
-        {step === 4 && (
           <div className="space-y-6 bg-white shadow-sm rounded-lg p-6">
             <h2 className="text-xl font-semibold text-gray-900">Review Your Trade</h2>
 
@@ -534,8 +727,12 @@ export function CreateTrade() {
                     <dd className="text-sm text-gray-900">{formData.eventName}</dd>
                   </div>
                   <div className="flex justify-between">
-                    <dt className="text-sm text-gray-500">Location</dt>
+                    <dt className="text-sm text-gray-500">City</dt>
                     <dd className="text-sm text-gray-900">{formData.city}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-sm text-gray-500">Country</dt>
+                    <dd className="text-sm text-gray-900">{formData.country}</dd>
                   </div>
                   <div className="flex justify-between">
                     <dt className="text-sm text-gray-500">Date</dt>
@@ -545,10 +742,15 @@ export function CreateTrade() {
                     <dt className="text-sm text-gray-500">Section & Row</dt>
                     <dd className="text-sm text-gray-900">{formData.locality}</dd>
                   </div>
+                  <div className="flex justify-between">
+                    <dt className="text-sm text-gray-500">Ticket Platform</dt>
+                    <dd className="text-sm text-gray-900">{formData.platform.charAt(0).toUpperCase() + formData.platform.slice(1)}</dd>
+                  </div>
                 </dl>
               </div>
 
-              <div className="border-b border-gray-200 pb-4">
+              {/* Buyer Information - Commented out for future use */}
+              {/* <div className="border-b border-gray-200 pb-4">
                 <h3 className="text-lg font-medium text-gray-900">Buyer Information</h3>
                 <dl className="mt-4 space-y-2">
                   <div className="flex justify-between">
@@ -560,7 +762,7 @@ export function CreateTrade() {
                     <dd className="text-sm text-gray-900">{formData.buyerEmail}</dd>
                   </div>
                 </dl>
-              </div>
+              </div> */}
 
               <div className="border-b border-gray-200 pb-4">
                 <h3 className="text-lg font-medium text-gray-900">Price Details</h3>
@@ -610,13 +812,13 @@ export function CreateTrade() {
 
             <div className="flex justify-between">
               <button
-                onClick={() => setStep(3)}
+                onClick={() => setStep(2)}
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
               >
                 Back
               </button>
               <button
-                onClick={() => {/* Handle trade creation */}}
+                onClick={handleCreateTrade}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 Create Trade
@@ -626,6 +828,7 @@ export function CreateTrade() {
           </div>
         )}
       </div>
+      <ProfileModal />
     </div>
   );
 }

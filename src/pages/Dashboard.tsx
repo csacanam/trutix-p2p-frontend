@@ -930,17 +930,17 @@ export function Dashboard() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
           {address ? (
-            <Link
-              to="/create-trade"
+          <Link
+            to="/create-trade"
               onClick={(e) => {
                 e.preventDefault();
                 handleCreateTrade();
               }}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-5 w-5 mr-2" />
-              Create New Trade
-            </Link>
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Create New Trade
+          </Link>
           ) : (
             <button
               onClick={() => setIsLoginModalOpen(true)}
@@ -955,59 +955,59 @@ export function Dashboard() {
         <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">
           {address ? (
             trades.length > 0 ? (
-              trades.map((trade) => (
-                <Link
-                  key={trade.id}
-                  to={`/trade/${trade.id}`}
-                  className="block hover:bg-gray-50"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-blue-600 truncate">
-                            {trade.event.name}
-                          </p>
-                          <StatusBadge status={trade.status} role={trade.role} />
-                        </div>
-                        <div className="mt-2">
-                          <div className="flex items-center text-sm text-gray-500">
-                            <p>{trade.event.city} • {new Date(trade.event.date).toLocaleDateString()}</p>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <div className="text-gray-500">
-                              {trade.event.locality} • {trade.event.numTickets} {trade.event.numTickets === 1 ? 'ticket' : 'tickets'}
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium text-gray-900">
-                                {(trade.event.pricePerTicket * trade.event.numTickets).toFixed(2)} USDC
-                              </div>
-                              <div className="text-xs text-gray-500">
-                                {trade.event.pricePerTicket.toFixed(2)} USDC per ticket
-                              </div>
-                            </div>
-                          </div>
-                        </div>
+            trades.map((trade) => (
+              <Link
+                key={trade.id}
+                to={`/trade/${trade.id}`}
+                className="block hover:bg-gray-50"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-blue-600 truncate">
+                          {trade.event.name}
+                        </p>
+                        <StatusBadge status={trade.status} role={trade.role} />
                       </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-sm">
-                      <div className="text-gray-500">
-                        {trade.role === 'seller' ? (
-                          <>Buyer: {trade.buyer.name}</>
-                        ) : (
-                          <>Seller: {trade.seller.name}</>
-                        )}
-                      </div>
-                      <div className="text-gray-500">
-                        Created {new Date(trade.createdAt).toLocaleDateString()}
+                      <div className="mt-2">
+                        <div className="flex items-center text-sm text-gray-500">
+                          <p>{trade.event.city} • {new Date(trade.event.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <div className="text-gray-500">
+                            {trade.event.locality} • {trade.event.numTickets} {trade.event.numTickets === 1 ? 'ticket' : 'tickets'}
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-gray-900">
+                              {(trade.event.pricePerTicket * trade.event.numTickets).toFixed(2)} USDC
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {trade.event.pricePerTicket.toFixed(2)} USDC per ticket
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </Link>
-              ))
-            ) : (
-              <div className="p-6 text-center text-gray-500">
-                No trades yet. Create your first trade to get started!
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <div className="text-gray-500">
+                      {trade.role === 'seller' ? (
+                        <>Buyer: {trade.buyer.name}</>
+                      ) : (
+                        <>Seller: {trade.seller.name}</>
+                      )}
+                    </div>
+                    <div className="text-gray-500">
+                      Created {new Date(trade.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <div className="p-6 text-center text-gray-500">
+              No trades yet. Create your first trade to get started!
               </div>
             )
           ) : (
@@ -1078,7 +1078,7 @@ export function Dashboard() {
                       {isCopied ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       ) : (
-                        <Copy className="h-5 w-5" />
+                      <Copy className="h-5 w-5" />
                       )}
                     </button>
                   </div>
@@ -1183,7 +1183,7 @@ export function Dashboard() {
                   ) : transactionStatus === 'cancelled' ? (
                     <AlertTriangle className="h-6 w-6 text-yellow-600" />
                   ) : (
-                    <ArrowUpRight className="h-6 w-6 text-blue-600" />
+                  <ArrowUpRight className="h-6 w-6 text-blue-600" />
                   )}
                 </div>
                 <div className="mt-3 text-center sm:mt-5">
@@ -1300,22 +1300,22 @@ export function Dashboard() {
                   </div>
                 </div>
               ) : (
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700">
-                      Wallet Address
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      value={withdrawAddress}
-                      onChange={(e) => {
-                        setWithdrawAddress(e.target.value);
-                        setWithdrawError('');
-                      }}
-                      placeholder="0x..."
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    />
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="address" className="block text-sm font-medium text-gray-700">
+                    Wallet Address
+                  </label>
+                  <input
+                    type="text"
+                    id="address"
+                    value={withdrawAddress}
+                    onChange={(e) => {
+                      setWithdrawAddress(e.target.value);
+                      setWithdrawError('');
+                    }}
+                    placeholder="0x..."
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  />
                   </div>
 
                   <div>
@@ -1353,46 +1353,46 @@ export function Dashboard() {
                   {withdrawError && (
                     <div className="text-sm text-red-600">
                       {withdrawError}
-                    </div>
+                </div>
                   )}
 
-                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                    <div className="flex">
-                      <div className="flex-shrink-0">
-                        <AlertTriangle className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div className="ml-3">
-                        <h3 className="text-sm font-medium text-blue-800">Important Instructions</h3>
-                        <div className="mt-2 text-sm text-blue-700">
-                          <ul className="list-disc pl-5 space-y-1">
-                            <li>Only withdraw to a wallet address on the Base network</li>
-                            <li>Make sure your wallet supports Base network and USDC</li>
-                            <li>Double check the address before confirming</li>
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-blue-400" />
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-blue-800">Important Instructions</h3>
+                      <div className="mt-2 text-sm text-blue-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Only withdraw to a wallet address on the Base network</li>
+                          <li>Make sure your wallet supports Base network and USDC</li>
+                          <li>Double check the address before confirming</li>
                             <li>Withdrawals are processed within 1 minute</li>
-                          </ul>
-                        </div>
+                        </ul>
                       </div>
                     </div>
                   </div>
                 </div>
+                    </div>
               )}
 
               {transactionStatus === 'idle' && (
-                <div className="mt-6 flex gap-3">
-                  <button
-                    onClick={() => setIsWithdrawModalOpen(false)}
-                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setIsWithdrawModalOpen(false)}
+                  className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
                     onClick={handleWithdrawSubmit}
                     disabled={transactionStatus !== 'idle'}
                     className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
+                >
                     {transactionStatus === 'pending' ? 'Processing...' : 'Withdraw'}
-                  </button>
-                </div>
+                </button>
+              </div>
               )}
             </div>
           </div>

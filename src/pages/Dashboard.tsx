@@ -9,6 +9,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import trutixLogo from '../assets/trutix-logo.png';
 import axios from 'axios';
 import { countryCodes } from '../constants/countryCodes';
+import { TRUTIX_ABI } from '../constants/trutixAbi';
 
 interface ProfileForm {
   firstName: string;

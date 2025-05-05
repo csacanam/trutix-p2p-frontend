@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, X, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAccount } from 'wagmi';
+import { useAccount, useWriteContract, useTransactionReceipt } from 'wagmi';
 import axios from 'axios';
+import { TRUTIX_ABI } from '../constants/trutixAbi';
+import { parseUnits } from 'viem';
+import { decodeAbiParameters, decodeEventLog } from 'viem';
 
 interface ProfileForm {
   firstName: string;
@@ -27,6 +30,9 @@ interface UserExistsResponse {
 export function CreateTrade() {
   const navigate = useNavigate();
   const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
+  const [transactionHash, setTransactionHash] = useState<`0x${string}` | undefined>();
+  const { data: receipt } = useTransactionReceipt({ hash: transactionHash });
   const [step, setStep] = useState(1);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [userExists, setUserExists] = useState(false);
@@ -49,7 +55,7 @@ export function CreateTrade() {
     date: '',
     locality: '',
     numTickets: 1,
-    platform: 'ticketmaster',
+    platform: 'Ticketmaster',
     isTransferable: false,
     pricePerTicket: '',
     buyerName: '',
@@ -70,6 +76,10 @@ export function CreateTrade() {
     country: '',
   });
 
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+
   // Check if user exists when address changes
   useEffect(() => {
     const checkUserExists = async () => {
@@ -86,6 +96,88 @@ export function CreateTrade() {
 
     checkUserExists();
   }, [address]);
+
+  // Add useEffect to handle transaction receipt
+  useEffect(() => {
+    const handleReceipt = async () => {
+      if (receipt?.blockHash) {
+        console.log('Transaction confirmed! Block hash:', receipt.blockHash);
+        
+        // Find the TradeCreated event log
+        const tradeCreatedLog = receipt.logs.find(log => 
+          log.address.toLowerCase() === import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS.toLowerCase()
+        );
+
+        if (tradeCreatedLog) {
+          // Decode the event using the contract ABI
+          const event = decodeEventLog({
+            abi: TRUTIX_ABI,
+            data: tradeCreatedLog.data,
+            topics: tradeCreatedLog.topics,
+          });
+
+          if (event.eventName === 'TradeCreated') {
+            console.log('Trade details:', {
+              tradeId: event.args.tradeId,
+              seller: event.args.seller,
+              amount: event.args.amount,
+              sellerFee: event.args.sellerFee,
+              buyerFee: event.args.buyerFee,
+              createdAt: event.args.createdAt
+            });
+
+            try {
+              // Fetch the user record ID from the backend
+              const userResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/${event.args.seller}`);
+              const userRecordId = userResponse.data.recordId;
+
+              // Validate that we have a valid user record ID
+              if (!userRecordId) {
+                console.error('User not found in database:', event.args.seller);
+                setErrorMessage('User not found in database. Please contact support.');
+                setIsErrorModalOpen(true);
+                return;
+              }
+
+              console.log("Is transferable:", formData.isTransferable);
+              console.log("Is transferable type:", typeof formData.isTransferable);
+
+              // Store trade details in the backend
+              await axios.post(`${import.meta.env.VITE_BACKEND_URL}/trades`, {
+                tradeId: event.args.tradeId.toString(),
+                seller: userRecordId,
+                lastUpdatedBy: userRecordId,
+                pricePerTicket: Number(event.args.amount) / 1e6,
+                sellerFee: event.args.sellerFee.toString(),
+                buyerFee: event.args.buyerFee.toString(),
+                createdAt: event.args.createdAt.toString(),
+                // Add the form data
+                eventName: formData.eventName,
+                eventCity: formData.city,
+                eventCountry: formData.country,
+                eventDate: formData.date,
+                eventSection: formData.locality,
+                numberOfTickets: formData.numTickets,
+                ticketPlatform: formData.platform,
+                isTransferable: Boolean(formData.isTransferable)
+              });
+
+              setIsSuccessModalOpen(true);
+              //window.location.href = '/dashboard';
+            } catch (error) {
+              console.error('Error storing trade details:', error);
+              setErrorMessage('Trade created but failed to store details. Please contact support.');
+              setIsErrorModalOpen(true);
+            }
+          }
+        } else {
+          console.error('TradeCreated event not found in transaction logs');
+        }
+      }
+    };
+
+    handleReceipt();
+  }, [receipt]);
 
   const handleProfileSubmit = async () => {
     // Validate form
@@ -370,7 +462,6 @@ export function CreateTrade() {
 
   const handleCreateTrade = async () => {
     if (!address) {
-      // Handle wallet not connected
       return;
     }
 
@@ -393,8 +484,20 @@ export function CreateTrade() {
     };
 
     console.log('Creating trade with data:', tradeData);
-    // TODO: Call backend API with tradeData
-    // navigate('/dashboard');
+    try {
+      const hash = await writeContractAsync({
+        address: import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+        abi: TRUTIX_ABI,
+        functionName: 'createTrade',
+        args: [parseUnits(formData.pricePerTicket.toString(), 6)]
+      });
+      console.log('Transaction hash:', hash);
+      setTransactionHash(hash);
+    } catch (error) {
+      console.error('Error creating trade:', error);
+      setErrorMessage('Failed to create trade. Please try again.');
+      setIsErrorModalOpen(true);
+    }
   };
 
   return (
@@ -420,8 +523,8 @@ export function CreateTrade() {
               { id: 2, name: 'Set Price' },
               { id: 3, name: 'Review' },
             ].map((s, index, array) => (
-              <>
-                <div key={s.id} className="flex flex-col items-center">
+              <React.Fragment key={s.id}>
+                <div className="flex flex-col items-center">
                   <div
                     className={`${
                       step >= s.id
@@ -445,7 +548,7 @@ export function CreateTrade() {
                     </div>
                   </div>
                 )}
-              </>
+              </React.Fragment>
             ))}
           </div>
         </nav>
@@ -584,7 +687,7 @@ export function CreateTrade() {
                 onChange={handleInputChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               >
-                <option value="ticketmaster">Ticketmaster</option>
+                <option value="Ticketmaster">Ticketmaster</option>
               </select>
             </div>
 

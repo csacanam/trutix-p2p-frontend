@@ -1,214 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy } from 'lucide-react';
+import { useAccount } from 'wagmi';
 
-// Mock data - This is a temporary implementation for development
-const mockTrades = {
-  '1a': {
-    id: '1a',
-    role: 'seller',
-    status: 'pending_payment',
-    event: {
-      name: 'Taylor Swift | The Eras Tour',
-      date: '2024-08-15',
-      city: 'Los Angeles, CA',
-      locality: 'Section 102, Row F',
-      numTickets: 2,
-      pricePerTicket: 350,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Sarah M.',
-      email: 'sarah.m@example.com',
-      phone: '+1 (555) 123-4567'
-    },
-    createdAt: '2024-03-15T10:00:00Z',
-  },
-  '1b': {
-    id: '1b',
-    role: 'buyer',
-    status: 'pending_payment',
-    event: {
-      name: 'Taylor Swift | The Eras Tour',
-      date: '2024-08-15',
-      city: 'Los Angeles, CA',
-      locality: 'Section 102, Row F',
-      numTickets: 2,
-      pricePerTicket: 350,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Sarah M.',
-      email: 'sarah.m@example.com',
-      phone: '+1 (555) 123-4567'
-    },
-    createdAt: '2024-03-15T10:00:00Z',
-  },
-  '2a': {
-    id: '2a',
-    role: 'seller',
-    status: 'paid',
-    event: {
-      name: 'Bad Bunny World Tour',
-      date: '2024-07-20',
-      city: 'Miami, FL',
-      locality: 'Section 204, Row C',
-      numTickets: 1,
-      pricePerTicket: 250,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Mike R.',
-      email: 'mike.r@example.com',
-      phone: '+1 (555) 234-5678'
-    },
-    createdAt: '2024-03-14T15:30:00Z',
-  },
-  '2b': {
-    id: '2b',
-    role: 'buyer',
-    status: 'paid',
-    event: {
-      name: 'Bad Bunny World Tour',
-      date: '2024-07-20',
-      city: 'Miami, FL',
-      locality: 'Section 204, Row C',
-      numTickets: 1,
-      pricePerTicket: 250,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Mike R.',
-      email: 'mike.r@example.com',
-      phone: '+1 (555) 234-5678'
-    },
-    createdAt: '2024-03-14T15:30:00Z',
-  },
-  '3a': {
-    id: '3a',
-    role: 'seller',
-    status: 'transferred',
-    event: {
-      name: 'Beyoncé Renaissance Tour',
-      date: '2024-09-01',
-      city: 'New York, NY',
-      locality: 'Section VIP, Row 2',
-      numTickets: 2,
-      pricePerTicket: 500,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Lisa K.',
-      email: 'lisa.k@example.com',
-      phone: '+1 (555) 345-6789'
-    },
-    createdAt: '2024-03-13T09:15:00Z',
-  },
-  '3b': {
-    id: '3b',
-    role: 'buyer',
-    status: 'transferred',
-    event: {
-      name: 'Beyoncé Renaissance Tour',
-      date: '2024-09-01',
-      city: 'New York, NY',
-      locality: 'Section VIP, Row 2',
-      numTickets: 2,
-      pricePerTicket: 500,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Lisa K.',
-      email: 'lisa.k@example.com',
-      phone: '+1 (555) 345-6789'
-    },
-    createdAt: '2024-03-13T09:15:00Z',
-  },
-  '4a': {
-    id: '4a',
-    role: 'seller',
-    status: 'completed',
-    event: {
-      name: 'Coldplay Music of the Spheres',
-      date: '2024-06-10',
-      city: 'Chicago, IL',
-      locality: 'Section 115, Row 10',
-      numTickets: 3,
-      pricePerTicket: 200,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Emma W.',
-      email: 'emma.w@example.com',
-      phone: '+1 (555) 456-7890'
-    },
-    createdAt: '2024-03-10T14:20:00Z',
-  },
-  '4b': {
-    id: '4b',
-    role: 'buyer',
-    status: 'completed',
-    event: {
-      name: 'Coldplay Music of the Spheres',
-      date: '2024-06-10',
-      city: 'Chicago, IL',
-      locality: 'Section 115, Row 10',
-      numTickets: 3,
-      pricePerTicket: 200,
-    },
-    seller: {
-      name: 'John D.',
-      rating: 4.8,
-    },
-    buyer: {
-      name: 'Emma W.',
-      email: 'emma.w@example.com',
-      phone: '+1 (555) 456-7890'
-    },
-    createdAt: '2024-03-10T14:20:00Z',
-  },
-};
-
-export function TradeDetail() {
-  const { id } = useParams();
+// Real implementation - This will fetch data from the API
+export function TradeDetailReal() {
+  console.log('TradeDetailReal component mounted');
+  const params = useParams();
+  console.log('All URL params:', params);
+  const tradeId = params.id;
+  console.log('Trade ID from params:', tradeId);
   const navigate = useNavigate();
+  const { address: connectedWallet } = useAccount();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showTransferModal, setShowTransferModal] = useState(false);
-  const [trade, setTrade] = useState<typeof mockTrades[keyof typeof mockTrades] | null>(null);
+  const [trade, setTrade] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+  const [userRole, setUserRole] = useState<'seller' | 'buyer' | null>(null);
 
   useEffect(() => {
-    if (id) {
-      if (mockTrades[id]) {
-        setTrade(mockTrades[id]);
-      } else {
+    if (!tradeId) {
+      console.error('No trade ID provided');
+      navigate('/dashboard');
+      return;
+    }
+
+    const fetchTrade = async () => {
+      try {
+        const apiUrl = `${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}`;
+        console.log('Making API call to:', apiUrl);
+        
+        const response = await fetch(apiUrl);
+        console.log('Response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Trade data:', data);
+          setTrade(data);
+          
+          // Determine user role based on the connected wallet
+          if (connectedWallet) {
+            console.log('Connected wallet:', connectedWallet);
+            console.log('Seller wallet:', data.sellerInfo?.address);
+            console.log('Trade status:', data.status);
+            
+            if (data.sellerInfo?.address && connectedWallet.toLowerCase() === data.sellerInfo.address.toLowerCase()) {
+              console.log('User is the seller');
+              setUserRole('seller');
+            } else {
+              console.log('User is not the seller');
+              setUserRole('buyer');
+            }
+          } else {
+            console.log('No wallet connected');
+            setUserRole(null);
+          }
+        } else {
+          const errorText = await response.text();
+          console.error('Error response:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          setTrade(null);
+        }
+      } catch (error) {
+        console.error('Error fetching trade:', error);
         setTrade(null);
       }
-    }
-    setLoading(false);
-  }, [id]);
+      setLoading(false);
+    };
+
+    fetchTrade();
+  }, [tradeId, connectedWallet, navigate]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -218,28 +83,28 @@ export function TradeDetail() {
 
   const StatusBadge = () => {
     switch (trade?.status) {
-      case 'pending_payment':
+      case 'Created':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-4 h-4 mr-1" />
-            {trade.role === 'seller' ? 'Awaiting Payment' : 'Payment Required'}
+            {userRole === 'seller' ? 'Awaiting Payment' : 'Payment Required'}
           </span>
         );
-      case 'paid':
+      case 'Paid':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
             <Clock className="w-4 h-4 mr-1" />
-            {trade.role === 'seller' ? 'Transfer Tickets Now' : 'Waiting for Transfer'}
+            {userRole === 'seller' ? 'Transfer Tickets Now' : 'Waiting for Transfer'}
           </span>
         );
-      case 'transferred':
+      case 'Transferred':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-4 h-4 mr-1" />
-            {trade.role === 'seller' ? 'Awaiting Confirmation' : 'Confirm Receipt'}
+            {userRole === 'seller' ? 'Awaiting Confirmation' : 'Confirm Receipt'}
           </span>
         );
-      case 'completed':
+      case 'Completed':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
             <CheckCircle className="w-4 h-4 mr-1" />
@@ -287,8 +152,19 @@ export function TradeDetail() {
               Cancel
             </button>
             <button
-              onClick={() => {
-                // Handle confirmation
+              onClick={async () => {
+                try {
+                  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/confirm`, {
+                    method: 'POST',
+                  });
+                  if (response.ok) {
+                    // Refresh trade data
+                    const updatedTrade = await response.json();
+                    setTrade(updatedTrade);
+                  }
+                } catch (error) {
+                  console.error('Error confirming trade:', error);
+                }
                 setShowConfirmModal(false);
               }}
               className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700"
@@ -337,8 +213,19 @@ export function TradeDetail() {
               Cancel
             </button>
             <button
-              onClick={() => {
-                // Handle transfer confirmation
+              onClick={async () => {
+                try {
+                  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/transfer`, {
+                    method: 'POST',
+                  });
+                  if (response.ok) {
+                    // Refresh trade data
+                    const updatedTrade = await response.json();
+                    setTrade(updatedTrade);
+                  }
+                } catch (error) {
+                  console.error('Error confirming transfer:', error);
+                }
                 setShowTransferModal(false);
               }}
               className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
@@ -391,10 +278,62 @@ export function TradeDetail() {
     );
   }
 
-  const totalPrice = trade.event.pricePerTicket * trade.event.numTickets;
+  // Calculate prices based on the actual data structure
+  const totalPrice = trade.pricePerTicket * trade.numberOfTickets;
   const buyerFee = totalPrice * 0.05;
   const finalPrice = totalPrice + buyerFee;
-  const tradeUrl = `${window.location.origin}/trade/${trade.id}`;
+  const tradeUrl = `${window.location.origin}/trade/${trade.tradeId}`;
+
+  // Update the Seller Info section
+  const renderSellerInfo = () => {
+    console.log('Trade object:', trade);
+    console.log('User role:', userRole);
+    console.log('Trade status:', trade?.status);
+    console.log('Seller info:', trade?.sellerInfo);
+    console.log('Buyer info:', trade?.buyerInfo);
+
+    if (!trade) {
+      return (
+        <div className="flex items-center space-x-4">
+          <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-600 font-medium">?</span>
+          </div>
+          <div>
+            <p className="text-gray-900 font-medium">Unknown</p>
+          </div>
+        </div>
+      );
+    }
+
+    const info = userRole === 'seller' && trade.status !== 'Created' ? trade.buyerInfo : trade.sellerInfo;
+    console.log('Selected info object:', info);
+    console.log('First name:', info?.firstname);
+    console.log('Last name:', info?.lastname);
+
+    const displayName = info?.firstname && info?.lastname 
+      ? `${info.firstname} ${info.lastname}` 
+      : 'Unknown';
+    const initials = info?.firstname && info?.lastname 
+      ? `${info.firstname[0]}${info.lastname[0]}` 
+      : '?';
+
+    console.log('Display name:', displayName);
+    console.log('Initials:', initials);
+
+    return (
+      <div className="flex items-center space-x-4">
+        <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
+          <span className="text-gray-600 font-medium">{initials}</span>
+        </div>
+        <div>
+          <p className="text-gray-900 font-medium">{displayName}</p>
+          {info?.rating && (
+            <p className="text-gray-500 text-sm">Rating: {info.rating}/5</p>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -402,12 +341,20 @@ export function TradeDetail() {
         {/* Status Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Trade #{id}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
             <StatusBadge />
           </div>
 
           {/* Status Messages and CTAs */}
-          {trade.status === 'pending_payment' && trade.role === 'buyer' && (
+          {userRole === 'seller' ? (
+            <div className="text-center">
+              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Share the trade link with your buyer. You'll be notified once payment is received.
+              </p>
+            </div>
+          ) : (
             <div className="space-y-4">
               <div className="text-center mb-6">
                 <Clock className="mx-auto h-12 w-12 text-yellow-500" />
@@ -433,24 +380,32 @@ export function TradeDetail() {
                 </div>
               </div>
 
-              <button className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                Pay ${finalPrice.toFixed(2)} USDC
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </button>
+              {connectedWallet && (
+                <button 
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/payment`, {
+                        method: 'POST',
+                      });
+                      if (response.ok) {
+                        // Handle payment initiation
+                        const paymentData = await response.json();
+                        // Redirect to payment page or handle payment flow
+                      }
+                    } catch (error) {
+                      console.error('Error initiating payment:', error);
+                    }
+                  }}
+                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  Pay ${finalPrice.toFixed(2)} USDC
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </button>
+              )}
             </div>
           )}
 
-          {trade.status === 'pending_payment' && trade.role === 'seller' && (
-            <div className="text-center">
-              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Share the trade link with your buyer. You'll be notified once payment is received.
-              </p>
-            </div>
-          )}
-
-          {trade.status === 'paid' && trade.role === 'seller' && (
+          {trade.status === 'Paid' && userRole === 'seller' && (
             <div className="space-y-6">
               <div className="text-center">
                 <Clock className="mx-auto h-12 w-12 text-blue-500" />
@@ -471,7 +426,7 @@ export function TradeDetail() {
                       <ol className="list-decimal pl-5 space-y-2">
                         <li>Log in to your Ticketmaster account (or the official event platform)</li>
                         <li>Go to "My Tickets" or "Manage Tickets"</li>
-                        <li>Select the tickets for {trade.event.name}</li>
+                        <li>Select the tickets for {trade.eventName}</li>
                         <li>Choose "Transfer Tickets" option</li>
                         <li>Enter the buyer's information exactly as shown below</li>
                         <li>Complete the transfer process</li>
@@ -563,7 +518,7 @@ export function TradeDetail() {
             </div>
           )}
 
-          {trade.status === 'paid' && trade.role === 'buyer' && (
+          {trade.status === 'Paid' && userRole === 'buyer' && (
             <div className="text-center">
               <Clock className="mx-auto h-12 w-12 text-blue-500" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
@@ -573,7 +528,7 @@ export function TradeDetail() {
             </div>
           )}
 
-          {trade.status === 'transferred' && trade.role === 'buyer' && (
+          {trade.status === 'Transferred' && userRole === 'buyer' && (
             <div className="text-center space-y-4">
               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <div>
@@ -611,7 +566,7 @@ export function TradeDetail() {
             </div>
           )}
 
-          {trade.status === 'transferred' && trade.role === 'seller' && (
+          {trade.status === 'Transferred' && userRole === 'seller' && (
             <div className="text-center">
               <Clock className="mx-auto h-12 w-12 text-blue-500" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
@@ -621,7 +576,7 @@ export function TradeDetail() {
             </div>
           )}
 
-          {trade.status === 'completed' && (
+          {trade.status === 'Completed' && (
             <div className="text-center">
               <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Completed</h3>
@@ -632,35 +587,21 @@ export function TradeDetail() {
           )}
         </div>
 
-        {/* Share Instructions (Only shown for seller when status is pending_payment) */}
-        {trade.role === 'seller' && trade.status === 'pending_payment' && (
+        {/* Share Instructions - Separate Card */}
+        {userRole === 'seller' && trade.status === 'Created' && (
           <div className="bg-white shadow-sm rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Share with Buyer</h2>
-            
             <div className="space-y-6">
-              {/* Trade Link */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trade Link
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Trade Link</label>
                 <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-gray-50 p-3 rounded-md font-mono text-sm break-all">
-                    {tradeUrl}
-                  </div>
-                  <button
-                    onClick={() => copyToClipboard(tradeUrl)}
-                    className="p-2 text-gray-400 hover:text-gray-500"
-                    title="Copy link"
-                  >
+                  <div className="flex-1 bg-gray-50 p-3 rounded-md font-mono text-sm break-all">{tradeUrl}</div>
+                  <button onClick={() => copyToClipboard(tradeUrl)} className="p-2 text-gray-400 hover:text-gray-500" title="Copy link">
                     <Copy className="h-5 w-5" />
                   </button>
                 </div>
-                {showCopiedMessage && (
-                  <p className="mt-1 text-sm text-green-600">Copied to clipboard!</p>
-                )}
+                {showCopiedMessage && <p className="mt-1 text-sm text-green-600">Copied to clipboard!</p>}
               </div>
-
-              {/* Instructions */}
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
                 <div className="flex">
                   <div className="ml-3">
@@ -676,12 +617,9 @@ export function TradeDetail() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  </div>
+                  <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
                   <div className="ml-3">
                     <p className="text-sm text-yellow-700">
                       <strong>Important:</strong> This trade link will expire in 24 hours if no payment is received.
@@ -699,23 +637,23 @@ export function TradeDetail() {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-500">Event</span>
-              <span className="text-gray-900 font-medium">{trade.event.name}</span>
+              <span className="text-gray-900 font-medium">{trade.eventName}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Date</span>
-              <span className="text-gray-900">{trade.event.date}</span>
+              <span className="text-gray-900">{trade.eventDate}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Location</span>
-              <span className="text-gray-900">{trade.event.city}</span>
+              <span className="text-gray-900">{trade.eventCity}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Section & Row</span>
-              <span className="text-gray-900">{trade.event.locality}</span>
+              <span className="text-gray-900">{trade.eventSection}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Number of Tickets</span>
-              <span className="text-gray-900">{trade.event.numTickets}</span>
+              <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
             </div>
           </div>
         </div>
@@ -726,7 +664,7 @@ export function TradeDetail() {
           <div className="space-y-4">
             <div className="flex justify-between">
               <span className="text-gray-500">Price per Ticket</span>
-              <span className="text-gray-900">${trade.event.pricePerTicket.toFixed(2)}</span>
+              <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-500">Subtotal</span>
@@ -745,27 +683,13 @@ export function TradeDetail() {
           </div>
         </div>
 
-        {/* Seller Info */}
+        {/* Seller/Buyer Info */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">
-            {trade.role === 'seller' && trade.status !== 'pending_payment' ? 'Buyer Information' : 'Seller Information'}
+            {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
           </h2>
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                <span className="text-gray-600 font-medium">
-                  {trade.role === 'seller' && trade.status !== 'pending_payment' ? trade.buyer.name[0] : trade.seller.name[0]}
-                </span>
-              </div>
-              <div>
-                <p className="text-gray-900 font-medium">
-                  {trade.role === 'seller' && trade.status !== 'pending_payment' ? trade.buyer.name : trade.seller.name}
-                </p>
-                {trade.role === 'buyer' && (
-                  <p className="text-gray-500 text-sm">Rating: {trade.seller.rating}/5</p>
-                )}
-              </div>
-            </div>
+            {renderSellerInfo()}
           </div>
         </div>
 
@@ -774,4 +698,4 @@ export function TradeDetail() {
       </div>
     </div>
   );
-}
+} 

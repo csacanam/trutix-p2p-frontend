@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { CreateTrade } from './pages/CreateTrade';
 import { FAQ } from './pages/FAQ';
 import { TradeDetail } from './pages/TradeDetail';
+import { TradeDetailReal } from './pages/TradeDetailReal';
 
 function App() {
   return (
@@ -16,7 +17,8 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/create-trade" element={<CreateTrade />} />
           <Route path="/faq" element={<FAQ />} />
-          <Route path="/trade/:id" element={<TradeDetail />} />
+          <Route path="/trade/:id" element={<TradeDetailReal />} />
+          <Route path="/trade-temp/:id" element={<TradeDetail />} />
         </Route>
       </Routes>
     </BrowserRouter>

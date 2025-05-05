@@ -959,7 +959,7 @@ export function Dashboard() {
             trades.map((trade) => (
               <Link
                 key={trade.id}
-                to={`/trade/${trade.id}`}
+                to={`/trade-temp/${trade.id}`}
                 className="block hover:bg-gray-50"
               >
                 <div className="p-6">

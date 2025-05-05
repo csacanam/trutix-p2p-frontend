@@ -162,8 +162,8 @@ export function CreateTrade() {
                 isTransferable: Boolean(formData.isTransferable)
               });
 
-              setIsSuccessModalOpen(true);
-              //window.location.href = '/dashboard';
+              // Redirect to the trade detail page
+              navigate(`/trade/${event.args.tradeId.toString()}`);
             } catch (error) {
               console.error('Error storing trade details:', error);
               setErrorMessage('Trade created but failed to store details. Please contact support.');

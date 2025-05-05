@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy } from 'lucide-react';
-import { useAccount } from 'wagmi';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X } from 'lucide-react';
+import { useAccount, useConnect } from 'wagmi';
+import axios from 'axios';
+import { ProfileModal } from '../components/ProfileModal';
+import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
+
+interface ProfileForm {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  countryCode: string;
+}
+
+interface ProfileErrors {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
 
 // Real implementation - This will fetch data from the API
 export function TradeDetailReal() {
@@ -18,6 +36,25 @@ export function TradeDetailReal() {
   const [loading, setLoading] = useState(true);
   const [showCopiedMessage, setShowCopiedMessage] = useState(false);
   const [userRole, setUserRole] = useState<'seller' | 'buyer' | null>(null);
+  const { address: isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [userExists, setUserExists] = useState(false);
+  const [profileForm, setProfileForm] = useState<ProfileForm>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    countryCode: '+1'
+  });
+  const [profileErrors, setProfileErrors] = useState<ProfileErrors>({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: ''
+  });
+  const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
+  const [userBalance, setUserBalance] = useState<number>(0);
 
   useEffect(() => {
     if (!tradeId) {
@@ -74,6 +111,39 @@ export function TradeDetailReal() {
 
     fetchTrade();
   }, [tradeId, connectedWallet, navigate]);
+
+  // Check if user exists when address changes
+  useEffect(() => {
+    const checkUserExists = async () => {
+      if (isConnected) {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/${isConnected}`);
+          setUserExists(response.data.success);
+        } catch (error) {
+          console.error('Error checking user:', error);
+          setUserExists(false);
+        }
+      }
+    };
+
+    checkUserExists();
+  }, [isConnected]);
+
+  // Add useEffect to fetch user balance
+  useEffect(() => {
+    const fetchUserBalance = async () => {
+      if (isConnected) {
+        try {
+          const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/${isConnected}/balance`);
+          setUserBalance(response.data.balance);
+        } catch (error) {
+          console.error('Error fetching user balance:', error);
+        }
+      }
+    };
+
+    fetchUserBalance();
+  }, [isConnected]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -238,6 +308,99 @@ export function TradeDetailReal() {
     );
   };
 
+  const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setProfileForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear error when user starts typing
+    setProfileErrors(prev => ({
+      ...prev,
+      [name]: ''
+    }));
+  };
+
+  const handleProfileSubmit = async () => {
+    // Validate form
+    const newErrors = {
+      firstName: !profileForm.firstName ? 'First name is required' : '',
+      lastName: !profileForm.lastName ? 'Last name is required' : '',
+      email: !profileForm.email ? 'Email is required' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email) ? 'Invalid email format' : '',
+      phone: !profileForm.phone ? 'Phone number is required' : ''
+    };
+
+    setProfileErrors(newErrors);
+
+    if (Object.values(newErrors).some(error => error)) {
+      return;
+    }
+
+    try {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/users`, {
+        address: isConnected,
+        ...profileForm
+      });
+      setUserExists(true);
+      setIsProfileModalOpen(false);
+    } catch (error) {
+      console.error('Error creating user:', error);
+    }
+  };
+
+  const handlePaymentClick = async () => {
+    if (!userExists) {
+      setIsProfileModalOpen(true);
+      return;
+    }
+
+    if (userBalance < finalPrice) {
+      setShowInsufficientBalanceModal(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/payment`, {
+        method: 'POST',
+      });
+      if (response.ok) {
+        const paymentData = await response.json();
+        // Handle payment flow
+      }
+    } catch (error) {
+      console.error('Error initiating payment:', error);
+    }
+  };
+
+  const handleDeposit = async () => {
+    try {
+      // Get the user's Airtable recordId
+      const userResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/${isConnected}`);
+      if (!userResponse.data.success) {
+        console.error('Error getting user data');
+        return;
+      }
+
+      const userRecordId = userResponse.data.recordId;
+
+      // Update the trade with buyer information
+      const response = await axios.patch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}`, {
+        buyer: userRecordId,
+        lastUpdatedBy: userRecordId
+      });
+
+      if (response.data) {
+        setShowInsufficientBalanceModal(false);
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error updating trade:', error);
+      // Still redirect to dashboard even if there's an error
+      setShowInsufficientBalanceModal(false);
+      navigate('/dashboard');
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -355,8 +518,8 @@ export function TradeDetailReal() {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="text-center mb-6">
+            <div className="space-y-6">
+              <div className="text-center">
                 <Clock className="mx-auto h-12 w-12 text-yellow-500" />
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
                 <p className="mt-1 text-sm text-gray-500">
@@ -364,38 +527,39 @@ export function TradeDetailReal() {
                 </p>
               </div>
 
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-gray-900">Important Information</h3>
-                  <div className="mt-2 text-sm text-gray-500">
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>Payment is held in escrow until you confirm ticket receipt</li>
-                      <li>Seller must transfer tickets within 24 hours</li>
-                      <li>Full refund if tickets aren't transferred</li>
-                    </ul>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">Important Information</h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Payment is held in escrow until you confirm ticket receipt</li>
+                        <li>Seller must transfer tickets within 24 hours</li>
+                        <li>Full refund if tickets aren't transferred</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {connectedWallet && (
+              {!isConnected ? (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => connect({ connector: connectors[0] })}
+                    className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    Login to Pay
+                  </button>
+                  <p className="text-center text-sm text-gray-500">
+                    Secure your ticket(s) now
+                  </p>
+                </div>
+              ) : (
                 <button 
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/payment`, {
-                        method: 'POST',
-                      });
-                      if (response.ok) {
-                        // Handle payment initiation
-                        const paymentData = await response.json();
-                        // Redirect to payment page or handle payment flow
-                      }
-                    } catch (error) {
-                      console.error('Error initiating payment:', error);
-                    }
-                  }}
+                  onClick={handlePaymentClick}
                   className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Pay ${finalPrice.toFixed(2)} USDC
@@ -695,6 +859,18 @@ export function TradeDetailReal() {
 
         <ConfirmationModal />
         <TransferConfirmationModal />
+        <ProfileModal 
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          onSuccess={() => setUserExists(true)}
+          address={isConnected || ''}
+        />
+        
+        <InsufficientBalanceModal
+          isOpen={showInsufficientBalanceModal}
+          onClose={() => setShowInsufficientBalanceModal(false)}
+          onDeposit={handleDeposit}
+        />
       </div>
     </div>
   );

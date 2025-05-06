@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle } from 'lucide-react';
-import { useAccount, useConnect } from 'wagmi';
+import { useAccount, useConnect, useBalance } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
+import { PaymentModal } from '../components/PaymentModal';
 
 interface ProfileForm {
   firstName: string;
@@ -20,6 +21,8 @@ interface ProfileErrors {
   email: string;
   phone: string;
 }
+
+const USDC_ADDRESS = import.meta.env.VITE_USDC_ADDRESS;
 
 // Real implementation - This will fetch data from the API
 export function TradeDetailReal() {
@@ -54,8 +57,14 @@ export function TradeDetailReal() {
     phone: ''
   });
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
-  const [userBalance, setUserBalance] = useState<number>(0);
+  const { data: balance, refetch: refetchBalance } = useBalance({
+    address: connectedWallet,
+    token: USDC_ADDRESS,
+  });
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [paidTimeLeft, setPaidTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tradeId) {
@@ -130,22 +139,6 @@ export function TradeDetailReal() {
     checkUserExists();
   }, [isConnected]);
 
-  // Add useEffect to fetch user balance
-  useEffect(() => {
-    const fetchUserBalance = async () => {
-      if (isConnected) {
-        try {
-          const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/users/${isConnected}/balance`);
-          setUserBalance(response.data.balance);
-        } catch (error) {
-          console.error('Error fetching user balance:', error);
-        }
-      }
-    };
-
-    fetchUserBalance();
-  }, [isConnected]);
-
   // Countdown timer effect
   useEffect(() => {
     if (!trade || trade.status !== 'Created' || !trade.createdAt) {
@@ -175,10 +168,45 @@ export function TradeDetailReal() {
     return () => clearInterval(interval);
   }, [trade]);
 
+  // Add a useEffect to handle the countdown for 'Paid' state
+  useEffect(() => {
+    if (!trade || trade.status !== 'Paid' || !trade.paidAt) {
+      setPaidTimeLeft(null);
+      return;
+    }
+    const paidAt = new Date(trade.paidAt).getTime();
+    const deadline = paidAt + 24 * 60 * 60 * 1000; // 24 hours in ms
+
+    const updatePaidTimer = () => {
+      const now = Date.now();
+      const diff = deadline - now;
+      if (diff <= 0) {
+        setPaidTimeLeft('Expired');
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setPaidTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updatePaidTimer();
+    const interval = setInterval(updatePaidTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trade]);
+
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     setShowCopiedMessage(true);
     setTimeout(() => setShowCopiedMessage(false), 2000);
+  };
+
+  const handleCopy = (value: string, field: string) => {
+    copyToClipboard(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
   };
 
   const StatusBadge = () => {
@@ -384,22 +412,19 @@ export function TradeDetailReal() {
       return;
     }
 
-    if (userBalance < finalPrice) {
+    const numericBalance = Number(balance?.formatted);
+    const numericPrice = Number(finalPrice);
+
+    console.log('User Balance (numeric):', numericBalance);
+    console.log('Final Price (numeric):', numericPrice);
+    console.log('Comparison:', numericBalance < numericPrice);
+
+    if (numericBalance < numericPrice) {
       setShowInsufficientBalanceModal(true);
       return;
     }
 
-    try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/payment`, {
-        method: 'POST',
-      });
-      if (response.ok) {
-        const paymentData = await response.json();
-        // Handle payment flow
-      }
-    } catch (error) {
-      console.error('Error initiating payment:', error);
-    }
+    setIsPaymentModalOpen(true);
   };
 
   const handleDeposit = async () => {
@@ -542,6 +567,20 @@ export function TradeDetailReal() {
                   Time left to pay: {timeLeft}
                 </div>
               )}
+              {userRole === 'seller' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
+                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                  <Clock className="w-4 h-4 mr-1 text-red-400" />
+                  Time left to transfer the tickets: {paidTimeLeft}
+                </div>
+              )}
+              {userRole === 'buyer' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
+                <>
+                  <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                    <Clock className="w-4 h-4 mr-1 text-red-400" />
+                    Time left to receive your tickets: {paidTimeLeft}
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex items-center gap-4">
               {timeLeft === 'Expired' ? (
@@ -572,76 +611,7 @@ export function TradeDetailReal() {
                 </span>
               </div>
             </div>
-          ) : (
-            userRole === 'seller' ? (
-              <div className="text-center">
-                <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Share the trade link with your buyer. You'll be notified once payment is received.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-                  <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Complete your payment to secure these tickets. The seller will be notified once payment is received.
-                  </p>
-                </div>
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">Important Information</h3>
-                      <div className="mt-2 text-sm text-yellow-700">
-                        <ul className="list-disc pl-5 space-y-1">
-                          <li>Payment is held in escrow until you confirm ticket receipt</li>
-                          <li>Seller must transfer tickets within 24 hours</li>
-                          <li>Full refund if tickets aren't transferred</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                {!isConnected ? (
-                  <div className="space-y-4">
-                    <button
-                      onClick={() => connect({ connector: connectors[0] })}
-                      className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                    >
-                      Login to Pay
-                    </button>
-                    <p className="text-center text-sm text-gray-500">
-                      Secure your ticket(s) now
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={handlePaymentClick}
-                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                      disabled={!!(trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase())}
-                    >
-                      Pay ${finalPrice.toFixed(2)} USDC
-                      <ArrowRight className="ml-2 h-5 w-5" />
-                    </button>
-                    {trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase() && (
-                      <div className="mt-2 flex items-center justify-center text-sm text-red-600">
-                        <AlertTriangle className="h-4 w-4 mr-2" />
-                        This trade is already assigned to another buyer. Payment is not possible.
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            )
-          )}
-
-          {trade.status === 'Paid' && userRole === 'seller' && (
+          ) : userRole === 'seller' && trade.status === 'Paid' ? (
             <div className="space-y-6">
               <div className="text-center">
                 <Clock className="mx-auto h-12 w-12 text-blue-500" />
@@ -650,7 +620,6 @@ export function TradeDetailReal() {
                   Payment has been received. Please transfer the tickets to the buyer using the official event platform.
                 </p>
               </div>
-
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -672,7 +641,6 @@ export function TradeDetailReal() {
                   </div>
                 </div>
               </div>
-
               <div className="bg-white shadow-sm rounded-lg p-6">
                 <h2 className="text-lg font-medium text-gray-900 mb-4">Transfer Details</h2>
                 <div className="space-y-4">
@@ -680,9 +648,9 @@ export function TradeDetailReal() {
                     <div className="flex justify-between">
                       <span className="text-gray-500">Full Name</span>
                       <div className="flex items-center">
-                        <span className="text-gray-900 font-medium">{trade.buyer.name}</span>
+                        <span className="text-gray-900 font-medium">{`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim()}</span>
                         <button
-                          onClick={() => copyToClipboard(trade.buyer.name)}
+                          onClick={() => handleCopy(`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim(), 'name')}
                           className="ml-2 text-gray-400 hover:text-gray-600"
                           title="Copy name"
                         >
@@ -691,15 +659,15 @@ export function TradeDetailReal() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">Must match exactly for transfer</p>
+                    {copiedField === 'name' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
-
                   <div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Email Address</span>
                       <div className="flex items-center">
-                        <span className="text-gray-900">{trade.buyer.email}</span>
+                        <span className="text-gray-900">{trade.buyerInfo?.email || ''}</span>
                         <button
-                          onClick={() => copyToClipboard(trade.buyer.email)}
+                          onClick={() => handleCopy(trade.buyerInfo?.email || '', 'email')}
                           className="ml-2 text-gray-400 hover:text-gray-600"
                           title="Copy email"
                         >
@@ -708,15 +676,15 @@ export function TradeDetailReal() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">Transfer notification will be sent here</p>
+                    {copiedField === 'email' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
-
                   <div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Phone Number</span>
                       <div className="flex items-center">
-                        <span className="text-gray-900">{trade.buyer.phone}</span>
+                        <span className="text-gray-900">{trade.buyerInfo?.phoneNumber || ''}</span>
                         <button
-                          onClick={() => copyToClipboard(trade.buyer.phone)}
+                          onClick={() => handleCopy(trade.buyerInfo?.phoneNumber || '', 'phone')}
                           className="ml-2 text-gray-400 hover:text-gray-600"
                           title="Copy phone"
                         >
@@ -725,10 +693,10 @@ export function TradeDetailReal() {
                       </div>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">Required for ticket transfer verification</p>
+                    {copiedField === 'phone' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
                 </div>
               </div>
-
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -741,7 +709,6 @@ export function TradeDetailReal() {
                   </div>
                 </div>
               </div>
-
               <div className="flex justify-center">
                 <button 
                   onClick={() => setShowTransferModal(true)}
@@ -752,63 +719,89 @@ export function TradeDetailReal() {
                 </button>
               </div>
             </div>
-          )}
-
-          {trade.status === 'Paid' && userRole === 'buyer' && (
+          ) : userRole === 'seller' ? (
             <div className="text-center">
-              <Clock className="mx-auto h-12 w-12 text-blue-500" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
+              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Your payment has been received. The seller has been notified and will transfer your tickets within 24 hours.
+                Share the trade link with your buyer. You'll be notified once payment is received.
               </p>
             </div>
-          )}
-
-          {trade.status === 'Transferred' && userRole === 'buyer' && (
-            <div className="text-center space-y-4">
-              <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-              <div>
-                <h3 className="text-lg font-medium text-gray-900">Tickets Have Been Transferred</h3>
+          ) : userRole === 'buyer' && trade.status === 'Paid' ? (
+            <>
+      
+              <div className="text-center">
+                <Clock className="mx-auto h-12 w-12 text-blue-500" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  The seller has transferred your tickets. Please verify and confirm receipt to complete the trade.
+                  Your payment has been received. The seller has been notified and will transfer your tickets within 24 hours.
                 </p>
-                <div className="mt-4 p-4 bg-yellow-50 border-l-4 border-yellow-400">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0 mt-1">
-                      <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                    </div>
-                    <div className="ml-3 text-left">
-                      <p className="text-sm text-yellow-700">
-                        <strong>IMPORTANT: Before confirming receipt</strong>
-                      </p>
-                      <ul className="mt-2 list-disc pl-5 space-y-2 text-sm text-yellow-700">
-                        <li>Check your email for the ticket transfer notification</li>
-                        <li>Accept the transfer in the official event platform</li>
-                        <li>Verify the tickets match exactly what you paid for (event, date, section, row)</li>
-                        <li>Ensure they are official digital tickets, not screenshots or PDFs</li>
-                        <li><strong>WARNING:</strong> Once you confirm receipt, the payment will be released to the seller immediately and cannot be reversed</li>
+              </div>
+              <div className="mt-6 bg-white shadow-sm rounded-lg p-4">
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
+                  <span className="text-sm text-yellow-700 font-medium text-left">
+                    <strong>Important:</strong> If the seller doesn't transfer the tickets in time, you'll be able to request a full refund.
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Complete your payment to secure these tickets. The seller will be notified once payment is received.
+                </p>
+              </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">Important Information</h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Payment is held in escrow until you confirm ticket receipt</li>
+                        <li>Seller must transfer tickets within 24 hours</li>
+                        <li>Full refund if tickets aren't transferred</li>
                       </ul>
                     </div>
                   </div>
                 </div>
               </div>
-              <button 
-                onClick={() => setShowConfirmModal(true)}
-                className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-              >
-                Confirm Ticket Receipt
-                <CheckCircle className="ml-2 h-5 w-5" />
-              </button>
-            </div>
-          )}
-
-          {trade.status === 'Transferred' && userRole === 'seller' && (
-            <div className="text-center">
-              <Clock className="mx-auto h-12 w-12 text-blue-500" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                The tickets have been transferred successfully. Once the buyer confirms receipt, your payment will be released.
-              </p>
+              {!isConnected ? (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => connect({ connector: connectors[0] })}
+                    className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    Login to Pay
+                  </button>
+                  <p className="text-center text-sm text-gray-500">
+                    Secure your ticket(s) now
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={handlePaymentClick}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!!(trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase())}
+                  >
+                    Pay ${finalPrice.toFixed(2)} USDC
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </button>
+                  {trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase() && (
+                    <div className="mt-2 flex items-center justify-center text-sm text-red-600">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      This trade is already assigned to another buyer. Payment is not possible.
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 
@@ -942,6 +935,13 @@ export function TradeDetailReal() {
           isOpen={showInsufficientBalanceModal}
           onClose={() => setShowInsufficientBalanceModal(false)}
           onDeposit={handleDeposit}
+        />
+
+        <PaymentModal 
+          isOpen={isPaymentModalOpen}
+          onClose={() => setIsPaymentModalOpen(false)}
+          tradeId={tradeId || ''}
+          amount={finalPrice}
         />
       </div>
     </div>

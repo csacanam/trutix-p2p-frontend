@@ -85,6 +85,15 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
     }
   }, [transaction, tradeId, connectedWallet]);
 
+  useEffect(() => {
+    if (transactionStatus === 'success') {
+      // Wait a short moment for backend update, then reload
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    }
+  }, [transactionStatus]);
+
   const handlePayment = async () => {
     setTransactionStatus('authorizing');
     try {

@@ -175,7 +175,7 @@ export function TradeDetailReal() {
       return;
     }
     const paidAt = new Date(trade.paidAt).getTime();
-    const deadline = paidAt + 24 * 60 * 60 * 1000; // 24 hours in ms
+    const deadline = paidAt + 12 * 60 * 60 * 1000; // 12 hours in ms
 
     const updatePaidTimer = () => {
       const now = Date.now();
@@ -704,7 +704,7 @@ export function TradeDetailReal() {
                   </div>
                   <div className="ml-3">
                     <p className="text-sm text-yellow-700">
-                      <strong>Important:</strong> You must complete the transfer within 24 hours or the trade will be automatically cancelled and the payment refunded.
+                      <strong>Important:</strong> You must complete the transfer within 12 hours or the trade will be automatically cancelled and the payment refunded.
                     </p>
                   </div>
                 </div>
@@ -734,7 +734,7 @@ export function TradeDetailReal() {
                 <Clock className="mx-auto h-12 w-12 text-blue-500" />
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Your payment has been received. The seller has been notified and will transfer your tickets within 24 hours.
+                  Your payment has been received. The seller has been notified and will transfer your tickets within 12 hours.
                 </p>
               </div>
               <div className="mt-6 bg-white shadow-sm rounded-lg p-4">
@@ -765,7 +765,7 @@ export function TradeDetailReal() {
                     <div className="mt-2 text-sm text-yellow-700">
                       <ul className="list-disc pl-5 space-y-1">
                         <li>Payment is held in escrow until you confirm ticket receipt</li>
-                        <li>Seller must transfer tickets within 24 hours</li>
+                        <li>Seller must transfer tickets within 12 hours</li>
                         <li>Full refund if tickets aren't transferred</li>
                       </ul>
                     </div>
@@ -851,7 +851,7 @@ export function TradeDetailReal() {
                   <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
                   <div className="ml-3">
                     <p className="text-sm text-yellow-700">
-                      <strong>Important:</strong> This trade link will expire in 24 hours if no payment is received.
+                      <strong>Important:</strong> This trade link will expire in 12 hours if no payment is received.
                     </p>
                   </div>
                 </div>

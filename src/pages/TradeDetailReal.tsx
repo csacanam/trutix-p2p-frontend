@@ -558,13 +558,22 @@ export function TradeDetailReal() {
                   </p>
                 </div>
               ) : (
-                <button 
-                  onClick={handlePaymentClick}
-                  className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  Pay ${finalPrice.toFixed(2)} USDC
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </button>
+                <>
+                  <button
+                    onClick={handlePaymentClick}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={!!(trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase())}
+                  >
+                    Pay ${finalPrice.toFixed(2)} USDC
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </button>
+                  {trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase() && (
+                    <div className="mt-2 flex items-center justify-center text-sm text-red-600">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      This trade is already assigned to another buyer. Payment is not possible.
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

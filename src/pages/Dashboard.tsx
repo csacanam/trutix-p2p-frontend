@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle, XCircle } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import { cbWalletConnector } from '../wagmi';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
@@ -776,6 +776,20 @@ export function Dashboard() {
   const getStatusBadge = (trade: Trade) => {
     const userRole = getUserRole(trade);
     if (!userRole) return null;
+
+    // Check for Expired (Created + >12h)
+    if (trade.status === 'Created' && trade.createdAt) {
+      const createdAt = new Date(trade.createdAt).getTime();
+      const now = Date.now();
+      if (now - createdAt > 12 * 60 * 60 * 1000) {
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <XCircle className="w-4 h-4 mr-1" />
+            Expired
+          </span>
+        );
+      }
+    }
 
     switch (trade.status) {
       case 'Created':

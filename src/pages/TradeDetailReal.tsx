@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle } from 'lucide-react';
 import { useAccount, useConnect } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -55,6 +55,7 @@ export function TradeDetailReal() {
   });
   const [showInsufficientBalanceModal, setShowInsufficientBalanceModal] = useState(false);
   const [userBalance, setUserBalance] = useState<number>(0);
+  const [timeLeft, setTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tradeId) {
@@ -144,6 +145,35 @@ export function TradeDetailReal() {
 
     fetchUserBalance();
   }, [isConnected]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (!trade || trade.status !== 'Created' || !trade.createdAt) {
+      setTimeLeft(null);
+      return;
+    }
+    const createdAt = new Date(trade.createdAt).getTime();
+    const deadline = createdAt + 12 * 60 * 60 * 1000; // 12 hours in ms
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = deadline - now;
+      if (diff <= 0) {
+        setTimeLeft('Expired');
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trade]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -504,78 +534,111 @@ export function TradeDetailReal() {
         {/* Status Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
-            <StatusBadge />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
+              {trade.status === 'Created' && timeLeft && timeLeft !== 'Expired' && (
+                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                  <Clock className="w-4 h-4 mr-1 text-red-400" />
+                  Time left to pay: {timeLeft}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-4">
+              {timeLeft === 'Expired' ? (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  <XCircle className="w-4 h-4 mr-1" />
+                  Expired
+                </span>
+              ) : (
+                <StatusBadge />
+              )}
+            </div>
           </div>
 
           {/* Status Messages and CTAs */}
-          {userRole === 'seller' ? (
-            <div className="text-center">
-              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Share the trade link with your buyer. You'll be notified once payment is received.
-              </p>
-            </div>
-          ) : (
+          {timeLeft === 'Expired' ? (
             <div className="space-y-6">
               <div className="text-center">
-                <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
+                <XCircle className="mx-auto h-12 w-12 text-red-500" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Expired</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Complete your payment to secure these tickets. The seller will be notified once payment is received.
+                  No payment was received within the 12-hour time limit. This trade is no longer active.
                 </p>
               </div>
-
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">Important Information</h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <ul className="list-disc pl-5 space-y-1">
-                        <li>Payment is held in escrow until you confirm ticket receipt</li>
-                        <li>Seller must transfer tickets within 24 hours</li>
-                        <li>Full refund if tickets aren't transferred</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
+                <span className="text-sm text-yellow-700 font-medium text-left">
+                  <strong>Important:</strong> To proceed, the seller must generate a new trade link.
+                </span>
               </div>
-
-              {!isConnected ? (
-                <div className="space-y-4">
-                  <button
-                    onClick={() => connect({ connector: connectors[0] })}
-                    className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    Login to Pay
-                  </button>
-                  <p className="text-center text-sm text-gray-500">
-                    Secure your ticket(s) now
+            </div>
+          ) : (
+            userRole === 'seller' ? (
+              <div className="text-center">
+                <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Share the trade link with your buyer. You'll be notified once payment is received.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+                  <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Complete your payment to secure these tickets. The seller will be notified once payment is received.
                   </p>
                 </div>
-              ) : (
-                <>
-                  <button
-                    onClick={handlePaymentClick}
-                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={!!(trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase())}
-                  >
-                    Pay ${finalPrice.toFixed(2)} USDC
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </button>
-                  {trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase() && (
-                    <div className="mt-2 flex items-center justify-center text-sm text-red-600">
-                      <AlertTriangle className="h-4 w-4 mr-2" />
-                      This trade is already assigned to another buyer. Payment is not possible.
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <AlertTriangle className="h-5 w-5 text-yellow-400" />
                     </div>
-                  )}
-                </>
-              )}
-            </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-yellow-800">Important Information</h3>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Payment is held in escrow until you confirm ticket receipt</li>
+                          <li>Seller must transfer tickets within 24 hours</li>
+                          <li>Full refund if tickets aren't transferred</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {!isConnected ? (
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => connect({ connector: connectors[0] })}
+                      className="w-full flex justify-center items-center px-4 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                    >
+                      Login to Pay
+                    </button>
+                    <p className="text-center text-sm text-gray-500">
+                      Secure your ticket(s) now
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <button
+                      onClick={handlePaymentClick}
+                      className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      disabled={!!(trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase())}
+                    >
+                      Pay ${finalPrice.toFixed(2)} USDC
+                      <ArrowRight className="ml-2 h-5 w-5" />
+                    </button>
+                    {trade.buyerInfo && trade.buyerInfo.address && connectedWallet && trade.buyerInfo.address.toLowerCase() !== connectedWallet.toLowerCase() && (
+                      <div className="mt-2 flex items-center justify-center text-sm text-red-600">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        This trade is already assigned to another buyer. Payment is not possible.
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )
           )}
 
           {trade.status === 'Paid' && userRole === 'seller' && (
@@ -761,7 +824,7 @@ export function TradeDetailReal() {
         </div>
 
         {/* Share Instructions - Separate Card */}
-        {userRole === 'seller' && trade.status === 'Created' && (
+        {userRole === 'seller' && trade.status === 'Created' && timeLeft !== 'Expired' && (
           <div className="bg-white shadow-sm rounded-lg p-6">
             <h2 className="text-lg font-medium text-gray-900 mb-4">Share with Buyer</h2>
             <div className="space-y-6">

@@ -219,6 +219,14 @@ export function TradeDetailReal() {
           </span>
         );
       case 'Paid':
+        if (trade?.paidAt && (Date.now() > new Date(trade.paidAt).getTime() + 12 * 60 * 60 * 1000)) {
+          return (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+              <XCircle className="w-4 h-4 mr-1" />
+              Expired
+            </span>
+          );
+        }
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
             <Clock className="w-4 h-4 mr-1" />
@@ -583,7 +591,7 @@ export function TradeDetailReal() {
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
                 <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
                 <span className="text-sm text-yellow-700 font-medium text-left">
-                  <strong>Important:</strong> You can now get a full refund.
+                  <strong>Important:</strong> {userRole === 'buyer' ? 'You can now get a full refund.' : 'This trade has expired and can no longer be completed. The buyer may now request a refund.'}
                 </span>
               </div>
               {userRole === 'buyer' && (

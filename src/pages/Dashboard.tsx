@@ -65,6 +65,7 @@ interface Trade {
   isTransferable: boolean;
   buyerFee: number;
   totalEarnedByTrutix: number;
+  paidAt?: string;
   buyerInfo: {
     address: string;
     firstname: string;
@@ -782,6 +783,20 @@ export function Dashboard() {
       const createdAt = new Date(trade.createdAt).getTime();
       const now = Date.now();
       if (now - createdAt > 12 * 60 * 60 * 1000) {
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+            <XCircle className="w-4 h-4 mr-1" />
+            Expired
+          </span>
+        );
+      }
+    }
+
+    // Check for Expired (Paid + >12h)
+    if (trade.status === 'Paid' && trade.paidAt) {
+      const paidAt = new Date(trade.paidAt).getTime();
+      const now = Date.now();
+      if (now - paidAt > 12 * 60 * 60 * 1000) {
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
             <XCircle className="w-4 h-4 mr-1" />

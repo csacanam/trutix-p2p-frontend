@@ -465,7 +465,10 @@ export function TradeDetailReal() {
   };
 
   // Calculate if the trade is expired due to no transfer after payment
-  const isPaidExpired = trade?.status === 'Paid' && trade?.paidAt && (Date.now() > new Date(trade.paidAt).getTime() + 12 * 60 * 60 * 1000);
+  const isPaidExpired = (trade?.status === 'Paid' && trade?.paidAt && (Date.now() > new Date(trade.paidAt).getTime() + 12 * 60 * 60 * 1000)) || trade?.status === 'ExpiredNoTransfer';
+
+  // Calculate if the trade is expired due to no payment after creation
+  const isCreatedExpired = (trade?.status === 'Created' && trade?.createdAt && (Date.now() > new Date(trade.createdAt).getTime() + 12 * 60 * 60 * 1000)) || trade?.status === 'Expired';
 
   if (loading) {
     return (
@@ -565,6 +568,7 @@ export function TradeDetailReal() {
   };
 
   if (isPaidExpired) {
+    // Expired by no transfer (Paid + 12h) or ExpiredNoTransfer
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
@@ -612,6 +616,103 @@ export function TradeDetailReal() {
                     If both parties are still interested, the seller can create a new trade link. Make sure to complete each step within the allowed time to avoid expiration.
                   </span>
                 </div>
+              </div>
+            </div>
+          </div>
+          {/* Event Details */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Event</span>
+                <span className="text-gray-900 font-medium">{trade.eventName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Date</span>
+                <span className="text-gray-900">{trade.eventDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Location</span>
+                <span className="text-gray-900">{trade.eventCity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Section & Row</span>
+                <span className="text-gray-900">{trade.eventSection}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Number of Tickets</span>
+                <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
+              </div>
+            </div>
+          </div>
+          {/* Price Breakdown */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Price per Ticket</span>
+                <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Service Fee (5%)</span>
+                <span className="text-gray-900">${buyerFee.toFixed(2)}</span>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-900 font-medium">Total</span>
+                  <span className="text-gray-900 font-medium">${finalPrice.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Seller/Buyer Info */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
+            </h2>
+            <div className="flex items-center justify-between">
+              {renderSellerInfo()}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isCreatedExpired) {
+    // Expired by no payment (Created + 12h) or Expired
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                  <XCircle className="w-4 h-4 mr-1" />
+                  Expired
+                </span>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="text-center">
+                <XCircle className="mx-auto h-12 w-12 text-red-500" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Expired</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  No payment was received within the 12-hour time limit. This trade is no longer active.
+                </p>
+              </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start">
+                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
+                <span className="text-sm text-yellow-700 font-medium text-left">
+                  <strong>Important:</strong> To proceed, the seller must generate a new trade link.
+                </span>
               </div>
             </div>
           </div>

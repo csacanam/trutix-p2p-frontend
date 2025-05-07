@@ -778,6 +778,16 @@ export function Dashboard() {
     const userRole = getUserRole(trade);
     if (!userRole) return null;
 
+    // Always show Expired badge for these statuses
+    if (trade.status === 'Expired' || trade.status === 'ExpiredNoTransfer') {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+          <XCircle className="w-4 h-4 mr-1" />
+          Expired
+        </span>
+      );
+    }
+
     // Check for Expired (Created + >12h)
     if (trade.status === 'Created' && trade.createdAt) {
       const createdAt = new Date(trade.createdAt).getTime();

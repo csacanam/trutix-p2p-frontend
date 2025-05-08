@@ -1114,7 +1114,7 @@ export function TradeDetailReal() {
                         </button>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Must match exactly for transfer</p>
+                    <p className="mt-1 text-xs text-gray-500">Some platforms may ask for it.</p>
                     {copiedField === 'name' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
                   <div>
@@ -1131,7 +1131,7 @@ export function TradeDetailReal() {
                         </button>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Transfer notification will be sent here</p>
+                    <p className="mt-1 text-xs text-gray-500">Required for most official ticket transfers.</p>
                     {copiedField === 'email' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
                   <div>
@@ -1148,7 +1148,7 @@ export function TradeDetailReal() {
                         </button>
                       </div>
                     </div>
-                    <p className="mt-1 text-xs text-gray-500">Required for ticket transfer verification</p>
+                    <p className="mt-1 text-xs text-gray-500">May help if you need to contact the buyer.</p>
                     {copiedField === 'phone' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
                   </div>
                 </div>

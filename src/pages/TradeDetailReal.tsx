@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft, Send } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -73,6 +73,10 @@ export function TradeDetailReal() {
   const { writeContractAsync } = useWriteContract();
   const { data: refundTx } = useTransaction({ hash: refundTxHash });
   const TRUTIX_CONTRACT_ADDRESS = import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS;
+  const [transferStatus, setTransferStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [transferTxHash, setTransferTxHash] = useState<`0x${string}` | undefined>();
+  const [transferError, setTransferError] = useState('');
+  const { data: transferTx } = useTransaction({ hash: transferTxHash });
 
   useEffect(() => {
     if (!tradeId) {
@@ -248,6 +252,13 @@ export function TradeDetailReal() {
             {userRole === 'seller' ? 'Awaiting Confirmation' : 'Confirm Receipt'}
           </span>
         );
+      case 'Sent':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+            <Send className="w-4 h-4 mr-1 text-blue-700" />
+            {userRole === 'seller' ? 'Waiting for Confirmation' : 'Tickets Sent'}
+          </span>
+        );
       case 'Completed':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
@@ -368,30 +379,59 @@ export function TradeDetailReal() {
             <button
               onClick={() => setShowTransferModal(false)}
               className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={transferStatus === 'pending'}
             >
               Cancel
             </button>
             <button
               onClick={async () => {
+                setTransferStatus('pending');
+                setTransferError('');
                 try {
-                  const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}/transfer`, {
-                    method: 'POST',
+                  const hash = await writeContractAsync({
+                    address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                    abi: TRUTIX_ABI,
+                    functionName: 'markAsSent',
+                    args: [BigInt(trade.tradeId)],
                   });
-                  if (response.ok) {
-                    // Refresh trade data
-                    const updatedTrade = await response.json();
-                    setTrade(updatedTrade);
-                  }
+                  setTransferTxHash(hash);
                 } catch (error) {
-                  console.error('Error confirming transfer:', error);
+                  setTransferStatus('error');
+                  setTransferError('Transaction failed. Please try again.');
                 }
-                setShowTransferModal(false);
               }}
-              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={transferStatus === 'pending'}
             >
-              Confirm Transfer
+              {transferStatus === 'pending' ? (
+                <>
+                  <Clock className="h-5 w-5 mr-2 animate-spin inline" /> Processing...
+                </>
+              ) : transferStatus === 'success' ? (
+                <>
+                  <CheckCircle className="h-5 w-5 mr-2 text-green-400 inline" /> Confirmed!
+                </>
+              ) : transferStatus === 'error' ? (
+                <>
+                  <AlertTriangle className="h-5 w-5 mr-2 text-red-400 inline" /> Try Again
+                </>
+              ) : (
+                'Confirm Transfer'
+              )}
             </button>
           </div>
+          {transferStatus === 'error' && (
+            <div className="mt-4 text-red-600 text-sm flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              {transferError}
+            </div>
+          )}
+          {transferStatus === 'success' && (
+            <div className="mt-4 text-green-600 text-sm flex items-center">
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Transfer confirmed successfully!
+            </div>
+          )}
         </div>
       </div>
     );
@@ -533,6 +573,47 @@ export function TradeDetailReal() {
       setRefundError('Transaction failed. Please try again.');
     }
   }, [refundTx, refundStatus, trade?.tradeId, connectedWallet]);
+
+  // Add effect to handle transfer transaction
+  useEffect(() => {
+    if (transferTx?.blockHash && transferStatus === 'pending') {
+      setTransferStatus('success');
+      // Update backend to Sent
+      (async () => {
+        try {
+          let recordId = connectedWallet;
+          try {
+            const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${connectedWallet}`);
+            const userData = await userRes.json();
+            if (userData.recordId) {
+              recordId = userData.recordId;
+            }
+          } catch (err) {
+            console.error('Error getting user recordId:', err);
+          }
+          if (!trade) return;
+          await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade?.tradeId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Sent',
+              lastUpdatedBy: recordId,
+              sentAt: new Date().toISOString(),
+            }),
+          });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } catch (err) {
+          setTransferStatus('error');
+          setTransferError('Transfer succeeded but failed to update backend. Please refresh.');
+        }
+      })();
+    } else if (transferTx?.blockHash === null && transferStatus === 'pending') {
+      setTransferStatus('error');
+      setTransferError('Transaction failed. Please try again.');
+    }
+  }, [transferTx, transferStatus, trade?.tradeId, connectedWallet]);
 
   if (loading) {
     return (
@@ -1107,10 +1188,10 @@ export function TradeDetailReal() {
                         <span className="text-gray-900 font-medium">{`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim()}</span>
                         <button
                           onClick={() => handleCopy(`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim(), 'name')}
-                          className="ml-2 text-gray-400 hover:text-gray-600"
+                          className="ml-2 text-gray-400 hover:text-gray-500"
                           title="Copy name"
                         >
-                          <Copy className="h-4 w-4" />
+                          <Copy className="h-5 w-5" />
                         </button>
                       </div>
                     </div>
@@ -1173,6 +1254,64 @@ export function TradeDetailReal() {
                 </button>
               </div>
             </div>
+          ) : userRole === 'seller' && trade.status === 'Sent' ? (
+            <div className="space-y-6">
+              <div className="text-center">
+                <Send className="mx-auto h-12 w-12 text-blue-700" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  The seller has marked the tickets as transferred.<br />
+                  The buyer now has up to 12 hours to report a problem if they didn't receive them.
+                </p>
+              </div>
+              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-blue-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      If no issue is reported, the trade will be completed automatically and the funds will be released to you.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : userRole === 'buyer' && trade.status === 'Sent' ? (
+            <div className="space-y-6">
+              <div className="text-center">
+                <Send className="mx-auto h-12 w-12 text-blue-700" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Tickets Have Been Sent</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  The seller has marked the tickets as transferred.<br />
+                  Please check your email or the official platform to verify the transfer.
+                </p>
+              </div>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      If you didn't receive the tickets, you have 12 hours to report it.<br />
+                      After that, the trade will be completed and refunds will no longer be possible.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <button
+                  onClick={() => {/* TODO: Implement report problem functionality */}}
+                  className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                >
+                  Report a Problem
+                </button>
+                <p className="text-sm text-gray-500 text-center">
+                  Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
+                </p>
+              </div>
+            </div>
           ) : userRole === 'seller' ? (
             <div className="text-center">
               <Clock className="mx-auto h-12 w-12 text-yellow-500" />
@@ -1183,7 +1322,6 @@ export function TradeDetailReal() {
             </div>
           ) : userRole === 'buyer' && trade.status === 'Paid' ? (
             <>
-      
               <div className="text-center">
                 <Clock className="mx-auto h-12 w-12 text-blue-500" />
                 <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
@@ -1191,15 +1329,19 @@ export function TradeDetailReal() {
                   Your payment has been received. The seller has been notified and will transfer your tickets within 12 hours.
                 </p>
               </div>
-              <div className="mt-6 bg-white shadow-sm rounded-lg p-4">
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
-                  <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
-                  <span className="text-sm text-yellow-700 font-medium text-left">
-                    <strong>Important:</strong> If the seller doesn't transfer the tickets in time, you'll be able to request a full refund.
-                  </span>
-                </div>
-              </div>
             </>
+          ) : trade.status === 'Sent' ? (
+            <div className="text-center">
+              <Send className="mx-auto h-12 w-12 text-blue-700" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">
+                {userRole && userRole === 'seller' ? 'Waiting for Confirmation' : 'Tickets Sent'}
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {userRole && userRole === 'seller'
+                  ? 'The buyer will confirm receipt of the tickets.'
+                  : 'The seller has transferred the tickets. Please check your email and confirm receipt.'}
+              </p>
+            </div>
           ) : (
             <div className="space-y-6">
               <div className="text-center">

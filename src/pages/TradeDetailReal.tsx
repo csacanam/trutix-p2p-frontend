@@ -78,6 +78,10 @@ export function TradeDetailReal() {
   const [transferError, setTransferError] = useState('');
   const { data: transferTx } = useTransaction({ hash: transferTxHash });
   const [sentTimeLeft, setSentTimeLeft] = useState<string | null>(null);
+  const [claimStatus, setClaimStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [claimError, setClaimError] = useState('');
+  const [claimTxHash, setClaimTxHash] = useState<`0x${string}` | undefined>();
+  const { data: claimTx } = useTransaction({ hash: claimTxHash });
 
   useEffect(() => {
     if (!tradeId) {
@@ -648,6 +652,49 @@ export function TradeDetailReal() {
     }
   }, [transferTx, transferStatus, trade?.tradeId, connectedWallet]);
 
+  // Add effect to handle claim payment transaction
+  useEffect(() => {
+    if (claimTx?.blockHash && claimStatus === 'pending') {
+      setClaimStatus('success');
+      // Update backend to Completed and paymentClaimed
+      (async () => {
+        try {
+          let recordId = connectedWallet;
+          try {
+            const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${connectedWallet}`);
+            const userData = await userRes.json();
+            if (userData.recordId) {
+              recordId = userData.recordId;
+            }
+          } catch (err) {
+            console.error('Error getting user recordId:', err);
+          }
+          if (!trade) return;
+          await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade?.tradeId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Completed',
+              lastUpdatedBy: recordId,
+              confirmedAt: new Date().toISOString(),
+              paymentClaimed: true,
+              paymentClaimedAt: new Date().toISOString(),
+            }),
+          });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } catch (err) {
+          setClaimStatus('error');
+          setClaimError('Payment claim succeeded but failed to update backend. Please refresh.');
+        }
+      })();
+    } else if (claimTx?.blockHash === null && claimStatus === 'pending') {
+      setClaimStatus('error');
+      setClaimError('Transaction failed. Please try again.');
+    }
+  }, [claimTx, claimStatus, trade?.tradeId, connectedWallet]);
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1217,10 +1264,46 @@ export function TradeDetailReal() {
                     <CheckCircle className="w-5 h-5 text-green-700" /> Payment received
                   </div>
                 ) : (
-                  <button className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
-                    Get My Payment
+                  <button
+                    className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                    onClick={async () => {
+                      setClaimStatus('pending');
+                      setClaimError('');
+                      try {
+                        const hash = await writeContractAsync({
+                          address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                          abi: TRUTIX_ABI,
+                          functionName: 'expireTrade',
+                          args: [BigInt(trade.tradeId)],
+                        });
+                        setClaimTxHash(hash);
+                      } catch (error) {
+                        setClaimStatus('error');
+                        setClaimError('Transaction failed. Please try again.');
+                      }
+                    }}
+                    disabled={claimStatus === 'pending'}
+                  >
+                    {claimStatus === 'pending' ? (
+                      <>
+                        <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
+                      </>
+                    ) : claimStatus === 'success' ? (
+                      <>
+                        <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Payment claimed!
+                      </>
+                    ) : claimStatus === 'error' ? (
+                      <>
+                        <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
+                      </>
+                    ) : (
+                      'Get My Payment'
+                    )}
                   </button>
                 )
+              )}
+              {claimStatus === 'error' && (
+                <div className="mt-2 text-red-600 text-sm flex items-center"><AlertTriangle className="h-4 w-4 mr-1" />{claimError}</div>
               )}
             </div>
           ) : userRole === 'seller' ? (

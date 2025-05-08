@@ -342,16 +342,24 @@ export function TradeDetailReal() {
               </div>
               <div className="ml-3">
                 <p className="text-sm text-yellow-700">
-                  <strong>Important:</strong> Only mark as transferred after completing these steps:
+                  <strong>Important:</strong> Only confirm the transfer after completing all of the following steps:
                 </p>
                 <ul className="list-disc pl-5 mt-2 text-sm text-yellow-700">
-                  <li>You have logged into the official event platform</li>
-                  <li>You have successfully transferred the tickets to {trade?.buyer.email}</li>
-                  <li>The transfer has been completed and confirmed by the platform</li>
-                  <li>The buyer has received the transfer notification</li>
+                  <li>You've logged into the official ticketing platform.</li>
+                  <li>You've successfully transferred the ticket(s) to the buyer's email.</li>
+                  <li>The platform confirms the transfer is complete.</li>
                 </ul>
-                <p className="mt-2 text-sm text-yellow-700">
-                  <strong>Warning:</strong> False confirmation may result in penalties and account suspension
+              </div>
+            </div>
+          </div>
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">
+                  <strong>⚠️ Warning:</strong> False confirmation may result in penalties or account suspension.
                 </p>
               </div>
             </div>
@@ -1147,9 +1155,7 @@ export function TradeDetailReal() {
               </div>
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                 <div className="flex">
-                  <div className="flex-shrink-0">
-                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  </div>
+                  <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
                   <div className="ml-3">
                     <p className="text-sm text-yellow-700">
                       <strong>Important:</strong> You must complete the transfer within 12 hours or the trade will be automatically cancelled and the payment refunded.
@@ -1160,7 +1166,7 @@ export function TradeDetailReal() {
               <div className="flex justify-center">
                 <button 
                   onClick={() => setShowTransferModal(true)}
-                  className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
                 >
                   Mark as Transferred
                   <CheckCircle className="ml-2 h-5 w-5" />

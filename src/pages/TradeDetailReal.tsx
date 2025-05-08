@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle } from 'lucide-react';
-import { useAccount, useConnect, useBalance } from 'wagmi';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw } from 'lucide-react';
+import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { PaymentModal } from '../components/PaymentModal';
+import { TRUTIX_ABI } from '../constants/trutixAbi';
+import { decodeEventLog } from 'viem';
 
 interface ProfileForm {
   firstName: string;
@@ -65,6 +67,12 @@ export function TradeDetailReal() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [paidTimeLeft, setPaidTimeLeft] = useState<string | null>(null);
+  const [refundStatus, setRefundStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [refundError, setRefundError] = useState('');
+  const [refundTxHash, setRefundTxHash] = useState<`0x${string}` | undefined>();
+  const { writeContractAsync } = useWriteContract();
+  const { data: refundTx } = useTransaction({ hash: refundTxHash });
+  const TRUTIX_CONTRACT_ADDRESS = import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS;
 
   useEffect(() => {
     if (!tradeId) {
@@ -245,6 +253,13 @@ export function TradeDetailReal() {
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
             <CheckCircle className="w-4 h-4 mr-1" />
             Completed
+          </span>
+        );
+      case 'Refunded':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+            <RotateCcw className="w-4 h-4 mr-1 text-amber-700" />
+            Refunded
           </span>
         );
       default:
@@ -470,6 +485,47 @@ export function TradeDetailReal() {
   // Calculate if the trade is expired due to no payment after creation
   const isCreatedExpired = (trade?.status === 'Created' && trade?.createdAt && (Date.now() > new Date(trade.createdAt).getTime() + 12 * 60 * 60 * 1000)) || trade?.status === 'Expired';
 
+  // Refund transaction effect (simplificado: éxito si hay blockHash, sin buscar eventos)
+  useEffect(() => {
+    if (refundTx?.blockHash && refundStatus === 'pending') {
+      setRefundStatus('success');
+      // Update backend to Refunded
+      (async () => {
+        try {
+          let recordId = connectedWallet;
+          try {
+            const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${connectedWallet}`);
+            const userData = await userRes.json();
+            if (userData.recordId) {
+              recordId = userData.recordId;
+            }
+          } catch (err) {
+            console.error('Error getting user recordId:', err);
+          }
+          if (!trade) return;
+          await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade?.tradeId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Refunded',
+              lastUpdatedBy: recordId,
+              refundedAt: new Date().toISOString(),
+            }),
+          });
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } catch (err) {
+          setRefundStatus('error');
+          setRefundError('Refund succeeded but failed to update backend. Please refresh.');
+        }
+      })();
+    } else if (refundTx?.blockHash === null && refundStatus === 'pending') {
+      setRefundStatus('error');
+      setRefundError('Transaction failed. Please try again.');
+    }
+  }, [refundTx, refundStatus, trade?.tradeId, connectedWallet]);
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -567,6 +623,98 @@ export function TradeDetailReal() {
     );
   };
 
+  if (trade?.status === 'Refunded') {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+                  <RotateCcw className="w-4 h-4 mr-1 text-amber-700" />
+                  Refunded
+                </span>
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="text-center">
+                <RotateCcw className="mx-auto h-12 w-12 text-amber-700" />
+                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Refunded</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {userRole === 'seller'
+                    ? 'This trade was automatically refunded because the ticket was not transferred within the required time. The buyer has been refunded.'
+                    : "This trade was automatically refunded because the seller didn't transfer the ticket on time. You have received a full refund."}
+                </p>
+              </div>
+            </div>
+          </div>
+          {/* Event Details */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Event</span>
+                <span className="text-gray-900 font-medium">{trade.eventName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Date</span>
+                <span className="text-gray-900">{trade.eventDate}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Location</span>
+                <span className="text-gray-900">{trade.eventCity}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Section & Row</span>
+                <span className="text-gray-900">{trade.eventSection}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Number of Tickets</span>
+                <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
+              </div>
+            </div>
+          </div>
+          {/* Price Breakdown */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
+            <div className="space-y-4">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Price per Ticket</span>
+                <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Subtotal</span>
+                <span className="text-gray-900">${(trade.pricePerTicket * trade.numberOfTickets).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Service Fee (5%)</span>
+                <span className="text-gray-900">${((trade.pricePerTicket * trade.numberOfTickets) * 0.05).toFixed(2)}</span>
+              </div>
+              <div className="border-t pt-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-900 font-medium">Total</span>
+                  <span className="text-gray-900 font-medium">${((trade.pricePerTicket * trade.numberOfTickets) * 1.05).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Seller/Buyer Info */}
+          <div className="bg-white shadow-sm rounded-lg p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">
+              {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
+            </h2>
+            <div className="flex items-center justify-between">
+              {renderSellerInfo()}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isPaidExpired) {
     // Expired by no transfer (Paid + 12h) or ExpiredNoTransfer
     return (
@@ -575,7 +723,7 @@ export function TradeDetailReal() {
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
               </div>
               <div className="flex items-center gap-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
@@ -601,11 +749,44 @@ export function TradeDetailReal() {
               {userRole === 'buyer' && (
                 <div className="w-full mt-4">
                   <button
-                    className="w-full inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    onClick={() => alert('Refund action goes here')}
+                    className="w-full inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    onClick={async () => {
+                      setRefundStatus('pending');
+                      setRefundError('');
+                      try {
+                        const hash = await writeContractAsync({
+                          address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                          abi: TRUTIX_ABI,
+                          functionName: 'expireTrade',
+                          args: [BigInt(trade.tradeId)],
+                        });
+                        setRefundTxHash(hash);
+                      } catch (error) {
+                        setRefundStatus('error');
+                        setRefundError('Transaction failed. Please try again.');
+                      }
+                    }}
+                    disabled={refundStatus === 'pending'}
                   >
-                    Get Your Refund
+                    {refundStatus === 'pending' ? (
+                      <>
+                        <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
+                      </>
+                    ) : refundStatus === 'success' ? (
+                      <>
+                        <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Refunded!
+                      </>
+                    ) : refundStatus === 'error' ? (
+                      <>
+                        <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
+                      </>
+                    ) : (
+                      'Get Your Refund'
+                    )}
                   </button>
+                  {refundStatus === 'error' && (
+                    <div className="mt-2 text-red-600 text-sm flex items-center"><AlertTriangle className="h-4 w-4 mr-1" />{refundError}</div>
+                  )}
                 </div>
               )}
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4 flex items-start rounded-lg">
@@ -691,7 +872,7 @@ export function TradeDetailReal() {
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
               </div>
               <div className="flex items-center gap-4">
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
@@ -787,7 +968,7 @@ export function TradeDetailReal() {
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Trade #{trade.tradeId}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
               {trade.status === 'Created' && timeLeft && timeLeft !== 'Expired' && (
                 <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
                   <Clock className="w-4 h-4 mr-1 text-red-400" />

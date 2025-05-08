@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle, XCircle } from 'lucide-react';
+import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle, XCircle, RotateCcw } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import { cbWalletConnector } from '../wagmi';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
@@ -845,6 +845,13 @@ export function Dashboard() {
             Completed
           </span>
         );
+      case 'Refunded':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
+            <RotateCcw className="w-4 h-4 mr-1 text-amber-700" />
+            Refunded
+          </span>
+        );
       default:
         return null;
     }
@@ -861,7 +868,7 @@ export function Dashboard() {
   }
 
   if (error) {
-    return (
+  return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <p className="text-red-700">{error}</p>
@@ -874,96 +881,96 @@ export function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="grid grid-cols-1 gap-6 mb-6">
         <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 flex items-center justify-between">
-          <div>
+            <div>
             <h2 className="text-base font-medium text-gray-900 mb-1">Your Balance</h2>
             <p className="text-3xl font-bold text-gray-900">
               {balance ? `${formatUnits(balance.value, balance.decimals)} USDC` : '0.00 USDC'}
             </p>
-          </div>
+            </div>
           <div className="flex space-x-3">
-            <button
+              <button 
               onClick={handleWithdraw}
               className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50"
-            >
+              >
               <ArrowUpCircle className="w-5 h-5 mr-2" />
-              Withdraw
-            </button>
-            <button
+                Withdraw
+              </button>
+              <button 
               onClick={handleDeposit}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-            >
+              >
               <ArrowDownCircle className="w-5 h-5 mr-2" />
-              Deposit
-            </button>
+                Deposit
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
-        <Link
-          to="/create-trade"
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
+          <Link
+            to="/create-trade"
           className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-        >
+          >
           <PlusCircle className="w-5 h-5 mr-2" />
-          Create New Trade
-        </Link>
-      </div>
+            Create New Trade
+          </Link>
+        </div>
 
-      <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">
+        <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">
         {address ? (
           trades.length > 0 ? (
             trades.map((trade) => {
               const userRole = getUserRole(trade);
               return (
-                <Link
-                  key={trade.id}
+              <Link
+                key={trade.id}
                   to={`/trade/${trade.tradeId}`}
-                  className="block hover:bg-gray-50"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-blue-600 truncate">
+                className="block hover:bg-gray-50"
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-blue-600 truncate">
                             {trade.eventName}
-                          </p>
+                        </p>
                           {getStatusBadge(trade)}
-                        </div>
-                        <div className="mt-2">
-                          <div className="flex items-center text-sm text-gray-500">
+                      </div>
+                      <div className="mt-2">
+                        <div className="flex items-center text-sm text-gray-500">
                             <p>{trade.eventCity} • {new Date(trade.eventDate).toLocaleDateString()}</p>
-                          </div>
-                          <div className="mt-2 flex items-center justify-between text-sm">
-                            <div className="text-gray-500">
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <div className="text-gray-500">
                               {trade.eventSection} • {trade.numberOfTickets} {trade.numberOfTickets === 1 ? 'ticket' : 'tickets'}
-                            </div>
-                            <div className="text-right">
-                              <div className="font-medium text-gray-900">
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium text-gray-900">
                                 ${(trade.pricePerTicket * trade.numberOfTickets).toFixed(2)} USDC
-                              </div>
-                              <div className="text-xs text-gray-500">
+                            </div>
+                            <div className="text-xs text-gray-500">
                                 ${trade.pricePerTicket.toFixed(2)} USDC per ticket
                               </div>
-                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                    <div className="mt-4 flex items-center justify-between text-sm">
-                      <div className="text-gray-500">
-                        {userRole === 'seller' ? (
-                          <>Buyer: {trade.buyerInfo ? `${trade.buyerInfo.firstname} ${trade.buyerInfo.lastname}` : 'Not assigned'}</>
-                        ) : (
-                          <>Seller: {trade.sellerInfo ? `${trade.sellerInfo.firstname} ${trade.sellerInfo.lastname}` : 'Unknown'}</>
-                        )}
-                      </div>
-                      <div className="text-gray-500">
-                        Created {new Date(trade.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   </div>
-                </Link>
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <div className="text-gray-500">
+                        {userRole === 'seller' ? (
+                          <>Buyer: {trade.buyerInfo ? `${trade.buyerInfo.firstname} ${trade.buyerInfo.lastname}` : 'Not assigned'}</>
+                      ) : (
+                          <>Seller: {trade.sellerInfo ? `${trade.sellerInfo.firstname} ${trade.sellerInfo.lastname}` : 'Unknown'}</>
+                      )}
+                    </div>
+                    <div className="text-gray-500">
+                      Created {new Date(trade.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              </Link>
               );
             })
           ) : (
@@ -976,8 +983,8 @@ export function Dashboard() {
             <p className="text-lg font-medium text-gray-900 mb-2">Log in to view your trades.</p>
             <p className="text-sm text-gray-500">Create or access your account to see your activity.</p>
           </div>
-        )}
-      </div>
+                  )}
+                </div>
       {/* Render modals */}
       <LoginModal />
       <ProfileModal />
@@ -992,6 +999,6 @@ export function Dashboard() {
         onClose={() => setIsWithdrawModalOpen(false)}
         USDC_ADDRESS={USDC_ADDRESS}
       />
-    </div>
+        </div>
   );
 }

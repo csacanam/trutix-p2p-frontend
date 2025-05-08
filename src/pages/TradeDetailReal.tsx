@@ -77,6 +77,7 @@ export function TradeDetailReal() {
   const [transferTxHash, setTransferTxHash] = useState<`0x${string}` | undefined>();
   const [transferError, setTransferError] = useState('');
   const { data: transferTx } = useTransaction({ hash: transferTxHash });
+  const [sentTimeLeft, setSentTimeLeft] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tradeId) {
@@ -206,6 +207,35 @@ export function TradeDetailReal() {
 
     updatePaidTimer();
     const interval = setInterval(updatePaidTimer, 1000);
+    return () => clearInterval(interval);
+  }, [trade]);
+
+  // Add a useEffect to handle the countdown for 'Sent' state
+  useEffect(() => {
+    if (!trade || trade.status !== 'Sent' || !trade.sentAt) {
+      setSentTimeLeft(null);
+      return;
+    }
+    const sentAt = new Date(trade.sentAt).getTime();
+    const deadline = sentAt + 12 * 60 * 60 * 1000; // 12 hours in ms
+
+    const updateSentTimer = () => {
+      const now = Date.now();
+      const diff = deadline - now;
+      if (diff <= 0) {
+        setSentTimeLeft('Expired');
+        return;
+      }
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      setSentTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes
+        .toString()
+        .padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateSentTimer();
+    const interval = setInterval(updateSentTimer, 1000);
     return () => clearInterval(interval);
   }, [trade]);
 
@@ -858,7 +888,7 @@ export function TradeDetailReal() {
               {userRole === 'buyer' && (
                 <div className="w-full mt-4">
                   <button
-                    className="w-full inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    className="w-full inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600"
                     onClick={async () => {
                       setRefundStatus('pending');
                       setRefundError('');
@@ -1118,6 +1148,18 @@ export function TradeDetailReal() {
                   </div>
                 </>
               )}
+              {userRole === 'seller' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
+                <div className="mt-2 inline-flex items-center text-sm text-blue-700 bg-blue-50 rounded px-2 py-1">
+                  <Clock className="w-4 h-4 mr-1 text-blue-400" />
+                  Time left to claim payment: {sentTimeLeft}
+                </div>
+              )}
+              {userRole === 'buyer' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
+                <div className="mt-2 inline-flex items-center text-sm text-yellow-700 bg-yellow-50 rounded px-2 py-1">
+                  <Clock className="w-4 h-4 mr-1 text-yellow-400" />
+                  Time left to report a problem: {sentTimeLeft}
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-4">
               {timeLeft === 'Expired' ? (
@@ -1303,7 +1345,7 @@ export function TradeDetailReal() {
               <div className="space-y-4">
                 <button
                   onClick={() => {/* TODO: Implement report problem functionality */}}
-                  className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                  className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-500 hover:bg-orange-600"
                 >
                   Report a Problem
                 </button>

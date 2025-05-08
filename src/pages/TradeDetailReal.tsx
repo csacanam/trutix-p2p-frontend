@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -627,6 +627,16 @@ export function TradeDetailReal() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
+          {/* Back to trades link */}
+          <div className="mb-2">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to trades
+            </a>
+          </div>
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -720,6 +730,16 @@ export function TradeDetailReal() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
+          {/* Back to trades link */}
+          <div className="mb-2">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to trades
+            </a>
+          </div>
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -869,6 +889,16 @@ export function TradeDetailReal() {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="space-y-8">
+          {/* Back to trades link */}
+          <div className="mb-2">
+            <a
+              href="/dashboard"
+              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Back to trades
+            </a>
+          </div>
           <div className="bg-white shadow-sm rounded-lg p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
@@ -964,6 +994,16 @@ export function TradeDetailReal() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-8">
+        {/* Back to trades link */}
+        <div className="mb-2">
+          <a
+            href="/dashboard"
+            className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" />
+            Back to trades
+          </a>
+        </div>
         {/* Status Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-center mb-6">

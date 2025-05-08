@@ -71,6 +71,7 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
               status: 'Paid',
               paidAt,
               lastUpdatedBy: recordId,
+              buyer: recordId
             }),
           });
           console.log('Backend update invoked successfully.');

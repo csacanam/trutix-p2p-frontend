@@ -951,7 +951,7 @@ export function Dashboard() {
                             </div>
                             <div className="text-xs text-gray-500">
                                 ${trade.pricePerTicket.toFixed(2)} USDC per ticket
-                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>

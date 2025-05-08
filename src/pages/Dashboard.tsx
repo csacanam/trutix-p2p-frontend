@@ -66,6 +66,7 @@ interface Trade {
   buyerFee: number;
   totalEarnedByTrutix: number;
   paidAt?: string;
+  sentAt?: string;
   buyerInfo: {
     address: string;
     firstname: string;
@@ -816,6 +817,9 @@ export function Dashboard() {
       }
     }
 
+    // Add a helper to determine if Sent is expired
+    const isSentExpired = trade.status === 'Sent' && trade.sentAt && (Date.now() > new Date(trade.sentAt).getTime() + 12 * 60 * 60 * 1000);
+
     switch (trade.status) {
       case 'Created':
         return (
@@ -840,8 +844,8 @@ export function Dashboard() {
         );
       case 'Completed':
         return (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-            <CheckCircle className="w-4 h-4 mr-1" />
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+            <CheckCircle className="w-4 h-4 mr-1 text-green-700" />
             Completed
           </span>
         );
@@ -853,6 +857,14 @@ export function Dashboard() {
           </span>
         );
       case 'Sent':
+        if (isSentExpired) {
+          return (
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-700">
+              <CheckCircle className="w-4 h-4 mr-1 text-green-700" />
+              Completed
+            </span>
+          );
+        }
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
             <Send className="w-4 h-4 mr-1 text-blue-700" />
@@ -864,7 +876,7 @@ export function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (loading && address) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex justify-center items-center h-64">
@@ -890,9 +902,13 @@ export function Dashboard() {
         <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 flex items-center justify-between">
             <div>
             <h2 className="text-base font-medium text-gray-900 mb-1">Your Balance</h2>
-            <p className="text-3xl font-bold text-gray-900">
-              {balance ? `${formatUnits(balance.value, balance.decimals)} USDC` : '0.00 USDC'}
-            </p>
+            {address ? (
+              <p className="text-3xl font-bold text-gray-900">
+                {balance ? `${formatUnits(balance.value, balance.decimals)} USDC` : '0.00 USDC'}
+              </p>
+            ) : (
+              <p className="text-base text-gray-600 font-medium">Log in to see your balance</p>
+            )}
             </div>
           <div className="flex space-x-3">
               <button 
@@ -915,13 +931,23 @@ export function Dashboard() {
 
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Your Trades</h1>
-          <Link
-            to="/create-trade"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-          <PlusCircle className="w-5 h-5 mr-2" />
-            Create New Trade
-          </Link>
+          {address ? (
+            <Link
+              to="/create-trade"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusCircle className="w-5 h-5 mr-2" />
+              Create New Trade
+            </Link>
+          ) : (
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusCircle className="w-5 h-5 mr-2" />
+              Create New Trade
+            </button>
+          )}
         </div>
 
         <div className="bg-white shadow-sm rounded-lg divide-y divide-gray-200">

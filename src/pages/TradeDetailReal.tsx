@@ -286,7 +286,7 @@ export function TradeDetailReal() {
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
             <Send className="w-4 h-4 mr-1 text-blue-700" />
-            {userRole === 'seller' ? 'Waiting for Confirmation' : 'Tickets Sent'}
+            {userRole === 'seller' ? 'Waiting for Confirmation' : userRole === 'buyer' ? 'Tickets Sent' : ''}
           </span>
         );
       case 'Completed':
@@ -677,10 +677,10 @@ export function TradeDetailReal() {
           </p>
           <div className="mt-6">
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Return to Dashboard
+              Go to Home
             </button>
           </div>
         </div>
@@ -1120,14 +1120,15 @@ export function TradeDetailReal() {
           <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
           <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Already Taken</h3>
           <p className="mt-1 text-sm text-gray-500">
-            This trade is already assigned to a buyer and is no longer available for you to join or interact with.
+            This trade has already been claimed by another buyer and is no longer available.<br />
+            You can return to the home page to explore how the platform works or get started.
           </p>
           <div className="mt-6">
             <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              onClick={() => navigate('/')}
+              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Return to Dashboard
+              Go to Home
             </button>
           </div>
         </div>
@@ -1244,12 +1245,14 @@ export function TradeDetailReal() {
             <div className="text-center">
               <Send className="mx-auto h-12 w-12 text-blue-700" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">
-                {userRole === 'seller' ? 'Waiting for Confirmation' : 'Tickets Sent'}
+                {userRole === 'seller' ? 'Waiting for Confirmation' : userRole === 'buyer' ? 'Tickets Sent' : ''}
               </h3>
               <p className="mt-1 text-sm text-gray-500">
                 {userRole === 'seller'
                   ? 'The buyer will confirm receipt of the tickets.'
-                  : 'The seller has transferred the tickets. Please check your email and confirm receipt.'}
+                  : userRole === 'buyer'
+                    ? 'The seller has transferred the tickets. Please check your email and confirm receipt.'
+                    : ''}
               </p>
             </div>
           ) : (

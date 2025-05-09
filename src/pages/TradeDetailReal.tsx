@@ -256,6 +256,20 @@ export function TradeDetailReal() {
   };
 
   const StatusBadge = () => {
+    // Mostrar badge Expired para todos los expirados
+    if (
+      trade?.status === 'Expired' ||
+      trade?.status === 'ExpiredNoTransfer' ||
+      (trade?.status === 'Created' && trade?.createdAt && (Date.now() > new Date(trade.createdAt).getTime() + 12 * 60 * 60 * 1000)) ||
+      (trade?.status === 'Paid' && trade?.paidAt && (Date.now() > new Date(trade.paidAt).getTime() + 12 * 60 * 60 * 1000))
+    ) {
+      return (
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+          <XCircle className="w-4 h-4 mr-1" />
+          Expired
+        </span>
+      );
+    }
     switch (trade?.status) {
       case 'Created':
         return (
@@ -725,7 +739,7 @@ export function TradeDetailReal() {
           <div className="mt-6">
             <button
               onClick={() => navigate('/')}
-              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Go to Home
             </button>
@@ -792,377 +806,258 @@ export function TradeDetailReal() {
     );
   };
 
-  if (trade?.status === 'Refunded') {
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Back to trades link */}
-          <div className="mb-2">
-            <a
-              href="/dashboard"
-              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back to trades
-            </a>
-          </div>
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
+  // Add this function before the return statement of the component
+  function renderStatusSection() {
+    // Completed or Sent Expired
+    if (trade.status === 'Completed' || isSentExpired) {
+      return (
+        <div className="text-center space-y-3">
+          <CheckCircle className="mx-auto h-12 w-12 text-green-700" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Completed</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {userRole === 'buyer'
+              ? 'The tickets have been successfully transferred and the trade is now closed.'
+              : trade.paymentClaimed
+                ? 'The trade is complete and your payment has been released.'
+                : 'The trade is complete. You can now claim your payment.'}
+          </p>
+          {userRole === 'seller' && (
+            trade.paymentClaimed ? (
+              <div className="flex items-center justify-center text-green-700 font-medium text-sm gap-1">
+                <CheckCircle className="w-5 h-5 text-green-700" /> Payment received
               </div>
-              <div className="flex items-center gap-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
-                  <RotateCcw className="w-4 h-4 mr-1 text-amber-700" />
-                  Refunded
-                </span>
+            ) : (
+              <button
+                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                onClick={async () => {
+                  setClaimStatus('pending');
+                  setClaimError('');
+                  try {
+                    const hash = await writeContractAsync({
+                      address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                      abi: TRUTIX_ABI,
+                      functionName: 'expireTrade',
+                      args: [BigInt(trade.tradeId)],
+                    });
+                    setClaimTxHash(hash);
+                  } catch (error) {
+                    setClaimStatus('error');
+                    setClaimError('Transaction failed. Please try again.');
+                  }
+                }}
+                disabled={claimStatus === 'pending'}
+              >
+                {claimStatus === 'pending' ? (
+                  <>
+                    <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
+                  </>
+                ) : claimStatus === 'success' ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Payment claimed!
+                  </>
+                ) : claimStatus === 'error' ? (
+                  <>
+                    <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
+                  </>
+                ) : (
+                  'Get My Payment'
+                )}
+              </button>
+            )
+          )}
+          {claimStatus === 'error' && (
+            <div className="mt-2 text-red-600 text-sm flex items-center"><AlertTriangle className="h-4 w-4 mr-1" />{claimError}</div>
+          )}
+        </div>
+      );
+    }
+
+    // Refunded
+    if (trade.status === 'Refunded') {
+      return (
+        <div className="text-center space-y-3">
+          <RotateCcw className="mx-auto h-12 w-12 text-amber-700" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Refunded</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            This trade has been refunded and is no longer active.
+          </p>
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-5 w-5 text-blue-400" />
               </div>
-            </div>
-            <div className="space-y-6">
-              <div className="text-center">
-                <RotateCcw className="mx-auto h-12 w-12 text-amber-700" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Refunded</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {userRole === 'seller'
-                    ? 'This trade was automatically refunded because the ticket was not transferred within the required time. The buyer has been refunded.'
-                    : "This trade was automatically refunded because the seller didn't transfer the ticket on time. You have received a full refund."}
+              <div className="ml-3">
+                <p className="text-sm text-blue-700">
+                  {userRole === 'buyer' 
+                    ? 'Your payment has been refunded to your balance.'
+                    : 'The buyer has received their refund.'}
                 </p>
               </div>
             </div>
           </div>
-          {/* Event Details */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Event</span>
-                <span className="text-gray-900 font-medium">{trade.eventName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
-                <span className="text-gray-900">{trade.eventDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Location</span>
-                <span className="text-gray-900">{trade.eventCity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Section & Row</span>
-                <span className="text-gray-900">{trade.eventSection}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Number of Tickets</span>
-                <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
-              </div>
-            </div>
-          </div>
-          {/* Price Breakdown */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Price per Ticket</span>
-                <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="text-gray-900">${(trade.pricePerTicket * trade.numberOfTickets).toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Service Fee (5%)</span>
-                <span className="text-gray-900">${((trade.pricePerTicket * trade.numberOfTickets) * 0.05).toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-900 font-medium">Total</span>
-                  <span className="text-gray-900 font-medium">${((trade.pricePerTicket * trade.numberOfTickets) * 1.05).toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Seller/Buyer Info */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
-            </h2>
-            <div className="flex items-center justify-between">
-              {renderSellerInfo()}
-            </div>
-          </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (isPaidExpired) {
-    // Expired by no transfer (Paid + 12h) or ExpiredNoTransfer
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Back to trades link */}
-          <div className="mb-2">
-            <a
-              href="/dashboard"
-              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back to trades
-            </a>
-          </div>
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Expired
-                </span>
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="text-center">
-                <XCircle className="mx-auto h-12 w-12 text-red-500" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Expired</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  The seller did not transfer the tickets within the 12-hour time limit after payment. This trade is no longer active.
-                </p>
-              </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
-                <span className="text-sm text-yellow-700 font-medium text-left">
-                  <strong>Important:</strong> {userRole === 'buyer' ? 'You can now get a full refund.' : 'This trade has expired and can no longer be completed. The buyer may now request a refund.'}
-                </span>
-              </div>
-              {userRole === 'buyer' && (
-                <div className="w-full mt-4">
-                  <button
-                    className="w-full inline-flex items-center justify-center px-6 py-2 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                    onClick={async () => {
-                      setRefundStatus('pending');
-                      setRefundError('');
-                      try {
-                        const hash = await writeContractAsync({
-                          address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
-                          abi: TRUTIX_ABI,
-                          functionName: 'expireTrade',
-                          args: [BigInt(trade.tradeId)],
-                        });
-                        setRefundTxHash(hash);
-                      } catch (error) {
-                        setRefundStatus('error');
-                        setRefundError('Transaction failed. Please try again.');
-                      }
-                    }}
-                    disabled={refundStatus === 'pending'}
-                  >
-                    {refundStatus === 'pending' ? (
-                      <>
-                        <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
-                      </>
-                    ) : refundStatus === 'success' ? (
-                      <>
-                        <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Refunded!
-                      </>
-                    ) : refundStatus === 'error' ? (
-                      <>
-                        <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
-                      </>
-                    ) : (
-                      'Get Your Refund'
-                    )}
-                  </button>
-                  {refundStatus === 'error' && (
-                    <div className="mt-2 text-red-600 text-sm flex items-center"><AlertTriangle className="h-4 w-4 mr-1" />{refundError}</div>
-                  )}
+    // Expired
+    if (isPaidExpired || isCreatedExpired) {
+      return (
+        <div className="text-center space-y-3">
+          <XCircle className="mx-auto h-12 w-12 text-red-700" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Expired</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {isPaidExpired
+              ? 'The seller did not transfer the tickets within the 12-hour time limit after payment. This trade is no longer active.'
+              : 'No payment was received within the 12-hour time limit. This trade is no longer active.'}
+          </p>
+          {isPaidExpired && userRole === 'buyer' && (
+            <>
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-sm text-yellow-700">
+                      You can now get a full refund.
+                    </p>
+                  </div>
                 </div>
-              )}
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4 flex items-start rounded-lg">
-                <Clock className="h-5 w-5 text-blue-400 mr-2 mt-0.5" />
-                <div>
-                  <span className="text-sm text-blue-800 font-medium text-left block mb-1"><strong>Want to try again?</strong></span>
-                  <span className="text-sm text-blue-700 text-left block">
-                    If both parties are still interested, the seller can create a new trade link. Make sure to complete each step within the allowed time to avoid expiration.
-                  </span>
+              </div>
+              <button
+                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+                onClick={async () => {
+                  setRefundStatus('pending');
+                  setRefundError('');
+                  try {
+                    const hash = await writeContractAsync({
+                      address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                      abi: TRUTIX_ABI,
+                      functionName: 'expireTrade',
+                      args: [BigInt(trade.tradeId)],
+                    });
+                    setRefundTxHash(hash);
+                  } catch (error) {
+                    setRefundStatus('error');
+                    setRefundError('Transaction failed. Please try again.');
+                  }
+                }}
+                disabled={refundStatus === 'pending'}
+              >
+                {refundStatus === 'pending' ? (
+                  <>
+                    <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
+                  </>
+                ) : refundStatus === 'success' ? (
+                  <>
+                    <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Refunded!
+                  </>
+                ) : refundStatus === 'error' ? (
+                  <>
+                    <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
+                  </>
+                ) : (
+                  'Get Your Refund'
+                )}
+              </button>
+            </>
+          )}
+          {isPaidExpired && userRole === 'seller' && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3 text-left">
+                  <p className="text-sm text-yellow-700">
+                    This trade has expired and can no longer be completed. The buyer may now request a refund.
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-          {/* Event Details */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Event</span>
-                <span className="text-gray-900 font-medium">{trade.eventName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
-                <span className="text-gray-900">{trade.eventDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Location</span>
-                <span className="text-gray-900">{trade.eventCity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Section & Row</span>
-                <span className="text-gray-900">{trade.eventSection}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Number of Tickets</span>
-                <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
-              </div>
-            </div>
-          </div>
-          {/* Price Breakdown */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Price per Ticket</span>
-                <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Service Fee (5%)</span>
-                <span className="text-gray-900">${buyerFee.toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-900 font-medium">Total</span>
-                  <span className="text-gray-900 font-medium">${finalPrice.toFixed(2)}</span>
+          )}
+          {isCreatedExpired && (
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-yellow-400" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    To proceed, the seller must generate a new trade link.
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
-          {/* Seller/Buyer Info */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
-            </h2>
-            <div className="flex items-center justify-between">
-              {renderSellerInfo()}
-            </div>
-          </div>
+          )}
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  if (isCreatedExpired) {
-    // Expired by no payment (Created + 12h) or Expired
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="space-y-8">
-          {/* Back to trades link */}
-          <div className="mb-2">
-            <a
-              href="/dashboard"
-              className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 transition-colors"
-            >
-              <ArrowLeft className="w-4 h-4 mr-1" />
-              Back to trades
-            </a>
+    // Created
+    if (trade.status === 'Created') {
+      if (userRole === 'seller') {
+        // ... existing seller waiting for payment block ...
+        return (
+          <div className="text-center">
+            <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Share the trade link with your buyer. You'll be notified once payment is received.
+            </p>
           </div>
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Expired
-                </span>
-              </div>
+        );
+      }
+      // Buyer or not logged in and no buyer assigned
+      if (!trade.buyerInfo || (connectedWallet && trade.buyerInfo?.address?.toLowerCase() === connectedWallet.toLowerCase())) {
+        // ... existing Payment Required block ...
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Complete your payment to secure these tickets. The seller will have 12 hours to transfer the tickets after your payment is confirmed.
+              </p>
             </div>
-            <div className="space-y-6">
-              <div className="text-center">
-                <XCircle className="mx-auto h-12 w-12 text-red-500" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Expired</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  No payment was received within the 12-hour time limit. This trade is no longer active.
-                </p>
-              </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start">
-                <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
-                <span className="text-sm text-yellow-700 font-medium text-left">
-                  <strong>Important:</strong> To proceed, the seller must generate a new trade link.
-                </span>
-              </div>
-            </div>
-          </div>
-          {/* Event Details */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Event</span>
-                <span className="text-gray-900 font-medium">{trade.eventName}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Date</span>
-                <span className="text-gray-900">{trade.eventDate}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Location</span>
-                <span className="text-gray-900">{trade.eventCity}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Section & Row</span>
-                <span className="text-gray-900">{trade.eventSection}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Number of Tickets</span>
-                <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
-              </div>
-            </div>
-          </div>
-          {/* Price Breakdown */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
-            <div className="space-y-4">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Price per Ticket</span>
-                <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Subtotal</span>
-                <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Service Fee (5%)</span>
-                <span className="text-gray-900">${buyerFee.toFixed(2)}</span>
-              </div>
-              <div className="border-t pt-4">
-                <div className="flex justify-between">
-                  <span className="text-gray-900 font-medium">Total</span>
-                  <span className="text-gray-900 font-medium">${finalPrice.toFixed(2)}</span>
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">Important Information</h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <ul className="list-disc pl-5 space-y-1">
+                      <li>Your payment is kept safe until you confirm you received the tickets.</li>
+                      <li>The seller must transfer the tickets within 24 hours.</li>
+                      <li>You'll get a full refund if the tickets aren't transferred.</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
+            {connectedWallet ? (
+              <button
+                onClick={handlePaymentClick}
+                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
+              >
+                Pay ${finalPrice.toFixed(2)} USDC
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </button>
+            ) : (
+              <button
+                onClick={() => connect({ connector: connectors[0] })}
+                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Login to Pay
+              </button>
+            )}
           </div>
-          {/* Seller/Buyer Info */}
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
-            </h2>
-            <div className="flex items-center justify-between">
-              {renderSellerInfo()}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!connectedWallet || (trade && userRole !== 'seller' && userRole !== 'buyer')) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        );
+      }
+      // Trade already taken
+      return (
         <div className="bg-white shadow-sm rounded-lg p-6 text-center">
           <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
           <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Already Taken</h3>
@@ -1172,13 +1067,200 @@ export function TradeDetailReal() {
           </p>
           <div className="mt-6">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/')} 
               className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Go to Home
             </button>
           </div>
         </div>
+      );
+    }
+
+    // Paid
+    if (trade.status === 'Paid') {
+      if (userRole === 'seller') {
+        // ... Transfer Tickets Now block ...
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Clock className="mx-auto h-12 w-12 text-blue-500" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Transfer Tickets Now</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Payment has been received. Please transfer the tickets to the buyer using the official event platform.
+              </p>
+            </div>
+            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <AlertTriangle className="h-5 w-5 text-blue-400" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-blue-800">Transfer Instructions</h3>
+                  <div className="mt-2 text-sm text-blue-700">
+                    <ol className="list-decimal pl-5 space-y-2">
+                      <li>Log in to your Ticketmaster account (or the official event platform)</li>
+                      <li>Go to "My Tickets" or "Manage Tickets"</li>
+                      <li>Select the tickets for {trade.eventName}</li>
+                      <li>Choose "Transfer Tickets" option</li>
+                      <li>Enter the buyer's information exactly as shown below</li>
+                      <li>Complete the transfer process</li>
+                      <li>Return here to mark the tickets as transferred</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white shadow-sm rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Transfer Details</h2>
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Full Name</span>
+                    <div className="flex items-center">
+                      <span className="text-gray-900 font-medium">{`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim()}</span>
+                      <button
+                        onClick={() => handleCopy(`${trade.buyerInfo?.firstname || ''} ${trade.buyerInfo?.lastname || ''}`.trim(), 'name')}
+                        className="ml-2 text-gray-400 hover:text-gray-500"
+                        title="Copy name"
+                      >
+                        <Copy className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Some platforms may ask for it.</p>
+                  {copiedField === 'name' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
+                </div>
+                <div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Email Address</span>
+                    <div className="flex items-center">
+                      <span className="text-gray-900">{trade.buyerInfo?.email || ''}</span>
+                      <button
+                        onClick={() => handleCopy(trade.buyerInfo?.email || '', 'email')}
+                        className="ml-2 text-gray-400 hover:text-gray-600"
+                        title="Copy email"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Required for most official ticket transfers.</p>
+                  {copiedField === 'email' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
+                </div>
+                <div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Phone Number</span>
+                    <div className="flex items-center">
+                      <span className="text-gray-900">{trade.buyerInfo?.phoneNumber || ''}</span>
+                      <button
+                        onClick={() => handleCopy(trade.buyerInfo?.phoneNumber || '', 'phone')}
+                        className="ml-2 text-gray-400 hover:text-gray-600"
+                        title="Copy phone"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">May help if you need to contact the buyer.</p>
+                  {copiedField === 'phone' && <span className="ml-2 text-green-600 text-xs">Copied!</span>}
+                </div>
+              </div>
+            </div>
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
+                <div className="ml-3">
+                  <p className="text-sm text-yellow-700">
+                    <strong>Important:</strong> You must complete the transfer within 12 hours or the trade will be automatically cancelled and the payment refunded.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-center">
+              <button 
+                onClick={() => setShowTransferModal(true)}
+                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Mark as Transferred
+                <CheckCircle className="ml-2 h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        );
+      }
+      // Buyer
+      if (userRole === 'buyer') {
+        // ... existing buyer waiting for transfer block ...
+        return (
+          <div className="text-center">
+            <Clock className="mx-auto h-12 w-12 text-blue-500" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Your payment has been received. The seller has been notified and will transfer your tickets within 12 hours.
+            </p>
+          </div>
+        );
+      }
+    }
+
+    // Sent
+    if (trade.status === 'Sent') {
+      if (userRole === 'seller') {
+        // ... Waiting for Buyer Confirmation block ...
+        return (
+          <div className="text-center">
+            <Send className="mx-auto h-12 w-12 text-blue-700" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              You've marked the tickets as transferred.<br />
+              The buyer now has up to 12 hours to report a problem.
+            </p>
+          </div>
+        );
+      }
+      if (userRole === 'buyer') {
+        // ... Tickets Have Been Sent block ...
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <Send className="mx-auto h-12 w-12 text-blue-700" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Tickets Have Been Sent</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                The seller has marked the tickets as transferred.<br />
+                Please check your email or the official platform to verify the transfer.
+              </p>
+            </div>
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
+              <span className="text-2xl mr-2">⚠️</span>
+              <span className="text-sm text-yellow-700 font-medium text-left">
+                If you didn't receive the tickets, you have 12 hours to report it.<br />
+                After that, the trade will be completed and refunds will no longer be possible.
+              </span>
+            </div>
+            <button
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+              // TODO: Implement report problem functionality
+            >
+              Report a Problem
+            </button>
+            <p className="text-center text-xs text-gray-500 mt-2">
+              Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
+            </p>
+          </div>
+        );
+      }
+    }
+
+    // Fallback
+    return (
+      <div className="text-center">
+        <Send className="mx-auto h-12 w-12 text-blue-700" />
+        <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
+        <p className="mt-1 text-sm text-gray-500">
+          You've marked the tickets as transferred.<br />
+          The buyer now has up to 12 hours to report a problem.
+        </p>
       </div>
     );
   }
@@ -1247,131 +1329,7 @@ export function TradeDetailReal() {
           </div>
 
           {/* Status Messages and CTAs */}
-          {(trade.status === 'Completed' || isSentExpired) ? (
-            <div className="text-center space-y-3">
-              <CheckCircle className="mx-auto h-12 w-12 text-green-700" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Completed</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {userRole === 'buyer'
-                  ? 'The tickets have been successfully transferred and the trade is now closed.'
-                  : trade.paymentClaimed
-                    ? 'The trade is complete and your payment has been released.'
-                    : 'The trade is complete. You can now claim your payment.'}
-              </p>
-              {userRole === 'seller' && (
-                trade.paymentClaimed ? (
-                  <div className="flex items-center justify-center text-green-700 font-medium text-sm gap-1">
-                    <CheckCircle className="w-5 h-5 text-green-700" /> Payment received
-                  </div>
-                ) : (
-                  <button
-                    className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-                    onClick={async () => {
-                      setClaimStatus('pending');
-                      setClaimError('');
-                      try {
-                        const hash = await writeContractAsync({
-                          address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
-                          abi: TRUTIX_ABI,
-                          functionName: 'expireTrade',
-                          args: [BigInt(trade.tradeId)],
-                        });
-                        setClaimTxHash(hash);
-                      } catch (error) {
-                        setClaimStatus('error');
-                        setClaimError('Transaction failed. Please try again.');
-                      }
-                    }}
-                    disabled={claimStatus === 'pending'}
-                  >
-                    {claimStatus === 'pending' ? (
-                      <>
-                        <Clock className="h-5 w-5 mr-2 animate-spin" /> Processing...
-                      </>
-                    ) : claimStatus === 'success' ? (
-                      <>
-                        <CheckCircle className="h-5 w-5 mr-2 text-green-400" /> Payment claimed!
-                      </>
-                    ) : claimStatus === 'error' ? (
-                      <>
-                        <AlertTriangle className="h-5 w-5 mr-2 text-red-400" /> Try Again
-                      </>
-                    ) : (
-                      'Get My Payment'
-                    )}
-                  </button>
-                )
-              )}
-              {claimStatus === 'error' && (
-                <div className="mt-2 text-red-600 text-sm flex items-center"><AlertTriangle className="h-4 w-4 mr-1" />{claimError}</div>
-              )}
-            </div>
-          ) : userRole === 'seller' && trade.status === 'Created' ? (
-            <div className="text-center">
-              <Clock className="mx-auto h-12 w-12 text-yellow-500" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Share the trade link with your buyer. You'll be notified once payment is received.
-              </p>
-            </div>
-          ) : userRole === 'buyer' && trade.status === 'Paid' ? (
-            <>
-              <div className="text-center">
-                <Clock className="mx-auto h-12 w-12 text-blue-500" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  Your payment has been received. The seller has been notified and will transfer your tickets within 12 hours.
-                </p>
-              </div>
-            </>
-          ) : trade.status === 'Sent' ? (
-            userRole === 'seller' ? (
-              <div className="text-center">
-                <Send className="mx-auto h-12 w-12 text-blue-700" />
-                <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  You've marked the tickets as transferred.<br />
-                  The buyer now has up to 12 hours to report a problem.
-                </p>
-              </div>
-            ) : userRole === 'buyer' ? (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <Send className="mx-auto h-12 w-12 text-blue-700" />
-                  <h3 className="mt-2 text-lg font-medium text-gray-900">Tickets Have Been Sent</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    The seller has marked the tickets as transferred.<br />
-                    Please check your email or the official platform to verify the transfer.
-                  </p>
-                </div>
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
-                  <span className="text-2xl mr-2">⚠️</span>
-                  <span className="text-sm text-yellow-700 font-medium text-left">
-                    If you didn't receive the tickets, you have 12 hours to report it.<br />
-                    After that, the trade will be completed and refunds will no longer be possible.
-                  </span>
-                </div>
-                <button
-                  className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-                  // TODO: Implement report problem functionality
-                >
-                  Report a Problem
-                </button>
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
-                </p>
-              </div>
-            ) : null
-          ) : (
-            <div className="text-center">
-              <Send className="mx-auto h-12 w-12 text-blue-700" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Buyer Confirmation</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                You've marked the tickets as transferred.<br />
-                The buyer now has up to 12 hours to report a problem.
-              </p>
-            </div>
-          )}
+          {renderStatusSection()}
         </div>
 
         {/* Share Instructions - Separate Card */}

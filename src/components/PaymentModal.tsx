@@ -157,7 +157,7 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
           </div>
 
           <div>
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
               {transactionStatus === 'authorizing' ? (
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
               ) : transactionStatus === 'paying' ? (
@@ -169,7 +169,7 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
               ) : transactionStatus === 'cancelled' ? (
                 <AlertTriangle className="h-6 w-6 text-yellow-600" />
               ) : (
-                <Clock className="h-6 w-6 text-blue-600" />
+                <Clock className="h-6 w-6 text-green-600" />
               )}
             </div>
             <div className="mt-3 text-center sm:mt-5">
@@ -299,7 +299,8 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
               </button>
               <button
                 onClick={handlePayment}
-                className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={transactionStatus === 'authorizing' || transactionStatus === 'paying' || transactionStatus === 'pending'}
               >
                 Pay Now
               </button>

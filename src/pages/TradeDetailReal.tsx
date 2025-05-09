@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft, Send } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft, Send, Scale } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -82,6 +82,9 @@ export function TradeDetailReal() {
   const [claimError, setClaimError] = useState('');
   const [claimTxHash, setClaimTxHash] = useState<`0x${string}` | undefined>();
   const { data: claimTx } = useTransaction({ hash: claimTxHash });
+  const [showDisputeModal, setShowDisputeModal] = useState(false);
+  const [disputeStatus, setDisputeStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [disputeError, setDisputeError] = useState('');
 
   useEffect(() => {
     if (!tradeId) {
@@ -271,6 +274,13 @@ export function TradeDetailReal() {
       );
     }
     switch (trade?.status) {
+      case 'Dispute':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            <Scale className="w-4 h-4 mr-1" />
+            In Dispute
+          </span>
+        );
       case 'Created':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
@@ -708,6 +718,83 @@ export function TradeDetailReal() {
       setClaimError('Transaction failed. Please try again.');
     }
   }, [claimTx, claimStatus, trade?.tradeId, connectedWallet]);
+
+  // 2. Modal de disputa
+  const DisputeModal = () => {
+    if (!showDisputeModal) return null;
+    return (
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-lg p-6 max-w-md w-full">
+          <h3 className="text-lg font-bold text-red-600 mb-2">🚨 Report a Problem</h3>
+          <p className="text-gray-700 mb-4">
+            You're about to initiate a dispute for this trade. Please use this only if you didn't receive the tickets or there's a serious issue with the transfer.
+          </p>
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 flex items-start">
+            <span className="text-2xl mr-2">⚠️</span>
+            <span className="text-sm text-yellow-700 font-medium">False reports may result in penalties or account suspension.</span>
+          </div>
+          {disputeError && (
+            <div className="mb-3 text-red-600 text-sm flex items-center">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              {disputeError}
+            </div>
+          )}
+          <div className="flex justify-end gap-3 mt-6">
+            <button
+              onClick={() => {
+                if (disputeStatus !== 'pending') setShowDisputeModal(false);
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              disabled={disputeStatus === 'pending'}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                setDisputeStatus('pending');
+                setDisputeError('');
+                try {
+                  // 1. Ejecutar disputeTrade en el contrato
+                  await writeContractAsync({
+                    address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+                    abi: TRUTIX_ABI,
+                    functionName: 'disputeTrade',
+                    args: [BigInt(trade.tradeId)],
+                  });
+                  // 2. Actualizar backend
+                  await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade.tradeId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      status: 'Dispute',
+                      disputedAt: new Date().toISOString(),
+                    }),
+                  });
+                  setDisputeStatus('success');
+                  setShowDisputeModal(false);
+                  // Refrescar trade
+                  window.location.reload();
+                } catch (err: any) {
+                  setDisputeStatus('error');
+                  setDisputeError('There was a problem submitting your dispute. Please try again.');
+                }
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 ${disputeStatus === 'pending' ? 'opacity-60 cursor-not-allowed' : ''}`}
+              disabled={disputeStatus === 'pending'}
+            >
+              {disputeStatus === 'pending' ? (
+                <>
+                  <Clock className="h-4 w-4 mr-2 animate-spin inline" /> Submitting...
+                </>
+              ) : (
+                'Submit Dispute'
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   if (loading) {
     return (
@@ -1193,12 +1280,32 @@ export function TradeDetailReal() {
       if (userRole === 'buyer') {
         // ... existing buyer waiting for transfer block ...
         return (
-          <div className="text-center">
-            <Clock className="mx-auto h-12 w-12 text-blue-500" />
-            <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Your payment has been received. The seller has been notified and will transfer your tickets within 12 hours.
+          <div className="space-y-6">
+            <div className="text-center">
+              <Send className="mx-auto h-12 w-12 text-blue-700" />
+              <h3 className="mt-2 text-lg font-medium text-gray-900">Tickets Have Been Sent</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                The seller has marked the tickets as transferred.<br />
+                Please check your email or the official platform to verify the transfer.
+              </p>
+            </div>
+            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
+              <span className="text-2xl mr-2">⚠️</span>
+              <span className="text-sm text-yellow-700 font-medium text-left">
+                If you didn't receive the tickets, you have 12 hours to report it.<br />
+                After that, the trade will be completed and refunds will no longer be possible.
+              </span>
+            </div>
+            <button
+              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
+              onClick={() => setShowDisputeModal(true)}
+            >
+              Report a Problem
+            </button>
+            <p className="text-center text-xs text-gray-500 mt-2">
+              Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
             </p>
+            <DisputeModal />
           </div>
         );
       }
@@ -1240,16 +1347,38 @@ export function TradeDetailReal() {
             </div>
             <button
               className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-              // TODO: Implement report problem functionality
+              onClick={() => setShowDisputeModal(true)}
             >
               Report a Problem
             </button>
             <p className="text-center text-xs text-gray-500 mt-2">
               Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
             </p>
+            <DisputeModal />
           </div>
         );
       }
+    }
+
+    // Dispute
+    if (trade.status === 'Dispute') {
+      return (
+        <div className="text-center space-y-3">
+          <Scale className="mx-auto h-12 w-12 text-yellow-600" />
+          <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Under Review</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {userRole === 'buyer'
+              ? 'You reported a problem with this trade. Our team is reviewing your case. Please wait for a resolution.'
+              : 'The buyer reported a problem. Our team is currently reviewing the dispute. You may be contacted for evidence.'}
+          </p>
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-yellow-400 mr-2 mt-0.5" />
+            <span className="text-sm text-yellow-700 text-left">
+              Disputes are handled manually. Both parties may be asked to provide evidence. A decision will be made soon.
+            </span>
+          </div>
+        </div>
+      );
     }
 
     // Fallback

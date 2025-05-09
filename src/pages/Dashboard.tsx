@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle, XCircle, RotateCcw, Send } from 'lucide-react';
+import { Plus, Wallet, X, CreditCard, ArrowRight, Copy, ExternalLink, ChevronDown, Ban as Bank, QrCode, CheckCircle, Clock, AlertTriangle, ArrowUpRight, PlusCircle, ArrowDownCircle, ArrowUpCircle, XCircle, RotateCcw, Send, Scale } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import { cbWalletConnector } from '../wagmi';
 import { parseUnits, formatUnits, erc20Abi } from 'viem';
@@ -869,6 +869,13 @@ export function Dashboard() {
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
             <Send className="w-4 h-4 mr-1 text-blue-700" />
             {userRole === 'seller' ? 'Waiting for Confirmation' : 'Tickets Sent'}
+          </span>
+        );
+      case 'Dispute':
+        return (
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+            <Scale className="w-4 h-4 mr-1" />
+            In Dispute
           </span>
         );
       default:

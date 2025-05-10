@@ -157,7 +157,7 @@ export function CreateTrade() {
                 eventCountry: formData.country,
                 eventDate: formData.date,
                 eventSection: formData.locality,
-                numberOfTickets: formData.numTickets,
+                numberOfTickets: 1,
                 ticketPlatform: formData.platform,
                 isTransferable: Boolean(formData.isTransferable)
               });
@@ -477,7 +477,7 @@ export function CreateTrade() {
       eventCountry: formData.country,
       eventDate: formData.date,
       eventSection: formData.locality,
-      numberOfTickets: formData.numTickets,
+      numberOfTickets: 1,
       ticketPlatform: formData.platform,
       isTransferable: formData.isTransferable,
       pricePerTicket: formData.pricePerTicket,
@@ -653,26 +653,6 @@ export function CreateTrade() {
               />
               {errors.locality && (
                 <p className="mt-1 text-sm text-red-600">{errors.locality}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="numTickets" className="block text-sm font-medium text-gray-700">
-                Number of Tickets <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                name="numTickets"
-                id="numTickets"
-                min="1"
-                value={formData.numTickets}
-                onChange={handleInputChange}
-                className={`mt-1 block w-full rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 ${
-                  errors.numTickets ? 'border-red-300' : 'border-gray-300'
-                }`}
-              />
-              {errors.numTickets && (
-                <p className="mt-1 text-sm text-red-600">{errors.numTickets}</p>
               )}
             </div>
 

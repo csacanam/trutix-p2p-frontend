@@ -883,6 +883,27 @@ export function Dashboard() {
     }
   };
 
+  // Agregar estos estilos CSS al principio del componente, justo después de la declaración de la función
+  // Estos estilos solo aplican a pantallas muy pequeñas
+  const mobileStyles = `
+    @media (max-width: 500px) {
+      .balance-container {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .balance-info {
+        margin-bottom: 1.5rem;
+      }
+      .buttons-container {
+        width: 100%;
+      }
+      .balance-button {
+        flex: 1;
+        justify-content: center;
+      }
+    }
+  `;
+
   if (loading && address) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -905,9 +926,10 @@ export function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <style dangerouslySetInnerHTML={{ __html: mobileStyles }}></style>
       <div className="grid grid-cols-1 gap-6 mb-6">
-        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 flex items-center justify-between">
-            <div>
+        <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6 flex items-center justify-between balance-container">
+            <div className="balance-info">
             <h2 className="text-base font-medium text-gray-900 mb-1">Your Balance</h2>
             {address ? (
               <p className="text-3xl font-bold text-gray-900">
@@ -917,17 +939,17 @@ export function Dashboard() {
               <p className="text-base text-gray-600 font-medium">Log in to see your balance</p>
             )}
             </div>
-          <div className="flex space-x-3">
+          <div className="flex space-x-3 buttons-container">
               <button 
               onClick={handleWithdraw}
-              className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50"
+              className="inline-flex items-center px-4 py-2 border border-blue-600 text-sm font-medium rounded-md shadow-sm text-blue-600 bg-white hover:bg-blue-50 balance-button"
               >
               <ArrowUpCircle className="w-5 h-5 mr-2" />
                 Withdraw
               </button>
               <button 
               onClick={handleDeposit}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 balance-button"
               >
               <ArrowDownCircle className="w-5 h-5 mr-2" />
                 Deposit

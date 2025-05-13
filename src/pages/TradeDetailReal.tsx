@@ -1082,9 +1082,8 @@ export function TradeDetailReal() {
     }
 
     // Created
-    if (trade.status === 'Created') {
+    if (trade.status === 'Created' && !isCreatedExpired) {
       if (userRole === 'seller') {
-        // ... existing seller waiting for payment block ...
         return (
           <div className="text-center">
             <Clock className="mx-auto h-12 w-12 text-yellow-500" />
@@ -1095,79 +1094,65 @@ export function TradeDetailReal() {
           </div>
         );
       }
-      // Buyer or not logged in and no buyer assigned
-      if (!trade.buyerInfo || (connectedWallet && trade.buyerInfo?.address?.toLowerCase() === connectedWallet.toLowerCase())) {
-        // ... existing Payment Required block ...
+      // Mostrar la misma UI para buyer y usuarios no logueados (userRole === 'buyer' || userRole === null)
+      if (userRole === 'buyer' || userRole === null) {
         return (
-          <div className="space-y-6">
-            <div className="text-center">
+          <div className="space-y-4">
+            <div className="text-center mb-6">
               <Clock className="mx-auto h-12 w-12 text-yellow-500" />
               <h3 className="mt-2 text-lg font-medium text-gray-900">Payment Required</h3>
               <p className="mt-1 text-sm text-gray-500">
-                Complete your payment to secure these tickets. The seller will have 12 hours to transfer the tickets after your payment is confirmed.
+                Complete your payment to secure these tickets. The seller will be notified once payment is received.
               </p>
             </div>
-            <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-blue-400" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">Important Information</h3>
-                  <div className="mt-2 text-sm text-blue-700">
-                    <ul className="list-disc pl-5 space-y-1">
-                      <li>Your payment is kept safe until you confirm you received the tickets.</li>
-                      <li>The seller must transfer the tickets within 24 hours.</li>
-                      <li>You'll get a full refund if the tickets aren't transferred.</li>
-                    </ul>
-                  </div>
+
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <AlertTriangle className="h-6 w-6 text-yellow-500" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-gray-900">Important Information</h3>
+                <div className="mt-2 text-sm text-gray-500">
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Payment is held in escrow until you confirm ticket receipt</li>
+                    <li>Seller must transfer tickets within 24 hours</li>
+                    <li>Full refund if tickets aren't transferred</li>
+                  </ul>
                 </div>
               </div>
             </div>
-            {connectedWallet ? (
-              <button
-                onClick={handlePaymentClick}
-                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-green-600 hover:bg-green-700"
-              >
-                Pay ${finalPrice.toFixed(2)} USDC
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </button>
-            ) : (
-              <button
-                onClick={() => connect({ connector: connectors[0] })}
-                className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-              >
-                Login to Pay
-              </button>
-            )}
+
+            <button 
+              onClick={() => {
+                if (!isConnected) {
+                  // Si no está conectado, mostrar el modal de conexión
+                  connect({ connector: connectors[0] });
+                } else {
+                  handlePaymentClick();
+                }
+              }}
+              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              {!isConnected ? (
+                <>
+                  Login to Pay
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              ) : (
+                <>
+                  Pay ${finalPrice.toFixed(2)} USDC
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </>
+              )}
+            </button>
           </div>
         );
       }
-      // Trade already taken
-      return (
-        <div className="bg-white shadow-sm rounded-lg p-6 text-center">
-          <AlertTriangle className="mx-auto h-12 w-12 text-yellow-500" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Trade Already Taken</h3>
-          <p className="mt-1 text-sm text-gray-500">
-            This trade has already been claimed by another buyer and is no longer available.<br />
-            You can return to the home page to explore how the platform works or get started.
-          </p>
-          <div className="mt-6">
-            <button
-              onClick={() => navigate('/')} 
-              className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Go to Home
-            </button>
-          </div>
-        </div>
-      );
     }
 
     // Paid
     if (trade.status === 'Paid') {
       if (userRole === 'seller') {
-        // ... Transfer Tickets Now block ...
         return (
           <div className="space-y-6">
             <div className="text-center">
@@ -1278,34 +1263,13 @@ export function TradeDetailReal() {
       }
       // Buyer
       if (userRole === 'buyer') {
-        // ... existing buyer waiting for transfer block ...
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Send className="mx-auto h-12 w-12 text-blue-700" />
-              <h3 className="mt-2 text-lg font-medium text-gray-900">Tickets Have Been Sent</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                The seller has marked the tickets as transferred.<br />
-                Please check your email or the official platform to verify the transfer.
-              </p>
-            </div>
-            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex items-start rounded-lg">
-              <span className="text-2xl mr-2">⚠️</span>
-              <span className="text-sm text-yellow-700 font-medium text-left">
-                If you didn't receive the tickets, you have 12 hours to report it.<br />
-                After that, the trade will be completed and refunds will no longer be possible.
-              </span>
-            </div>
-            <button
-              className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700"
-              onClick={() => setShowDisputeModal(true)}
-            >
-              Report a Problem
-            </button>
-            <p className="text-center text-xs text-gray-500 mt-2">
-              Use this only if you didn't receive the tickets or there's a serious issue with the transfer.
+          <div className="text-center">
+            <Clock className="mx-auto h-12 w-12 text-blue-500" />
+            <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Ticket Transfer</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              Your payment has been received. The seller has been notified and will transfer your tickets within 24 hours.
             </p>
-            <DisputeModal />
           </div>
         );
       }

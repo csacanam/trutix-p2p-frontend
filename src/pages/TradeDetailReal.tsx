@@ -796,6 +796,42 @@ export function TradeDetailReal() {
     );
   };
 
+  // Update the mobile styles to reposition elements on mobile
+  const mobileStatusStyles = `
+    @media (max-width: 640px) {
+      .status-container {
+        display: none;
+      }
+      .title-container {
+        width: 100%;
+      }
+      .mobile-status-badge {
+        display: flex;
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
+      }
+      .mobile-status-badge span {
+        display: inline-flex;
+        justify-content: center;
+        width: auto;
+      }
+      .timer-container {
+        width: 100%;
+        display: flex;
+        justify-content: flex-start;
+      }
+    }
+    @media (min-width: 641px) {
+      .mobile-status-badge {
+        display: none;
+      }
+      .status-container {
+        align-self: flex-start;
+        margin-top: 0.25rem;
+      }
+    }
+  `;
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -1360,6 +1396,7 @@ export function TradeDetailReal() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <style dangerouslySetInnerHTML={{ __html: mobileStatusStyles }}></style>
       <div className="space-y-8">
         {/* Back to trades link */}
         <div className="mb-2">
@@ -1373,43 +1410,56 @@ export function TradeDetailReal() {
         </div>
         {/* Status Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
+          <div className="flex justify-between items-start mb-6">
+            <div className="title-container">
               <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
+            
+              {/* Mobile-only status badge - moved before timers */}
+              <div className="mobile-status-badge">
+                {timeLeft === 'Expired' ? (
+                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                    <XCircle className="w-4 h-4 mr-1" />
+                    Expired
+                  </span>
+                ) : (
+                  <StatusBadge />
+                )}
+              </div>
+            
               {trade.status === 'Created' && timeLeft && timeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
                   <Clock className="w-4 h-4 mr-1 text-red-400" />
                   Time left to pay: {timeLeft}
                 </div>
               )}
               {userRole === 'seller' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
                   <Clock className="w-4 h-4 mr-1 text-red-400" />
                   Time left to transfer the tickets: {paidTimeLeft}
                 </div>
               )}
               {userRole === 'buyer' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
                 <>
-                  <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1">
+                  <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
                     <Clock className="w-4 h-4 mr-1 text-red-400" />
                     Time left to receive your tickets: {paidTimeLeft}
                   </div>
                 </>
               )}
               {userRole === 'seller' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-blue-700 bg-blue-50 rounded px-2 py-1">
+                <div className="mt-2 inline-flex items-center text-sm text-blue-700 bg-blue-50 rounded px-2 py-1 timer-container">
                   <Clock className="w-4 h-4 mr-1 text-blue-400" />
                   Time left to claim payment: {sentTimeLeft}
                 </div>
               )}
               {userRole === 'buyer' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-yellow-700 bg-yellow-50 rounded px-2 py-1">
+                <div className="mt-2 inline-flex items-center text-sm text-yellow-700 bg-yellow-50 rounded px-2 py-1 timer-container">
                   <Clock className="w-4 h-4 mr-1 text-yellow-400" />
                   Time left to report a problem: {sentTimeLeft}
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 status-container">
               {timeLeft === 'Expired' ? (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                   <XCircle className="w-4 h-4 mr-1" />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft, Send, Scale } from 'lucide-react';
+import { ArrowRight, CheckCircle, Clock, AlertTriangle, Copy, X, XCircle, RotateCcw, ArrowLeft, Send, Scale, Lock } from 'lucide-react';
 import { useAccount, useConnect, useBalance, useWriteContract, useTransaction } from 'wagmi';
 import axios from 'axios';
 import { ProfileModal } from '../components/ProfileModal';
@@ -115,9 +115,12 @@ export function TradeDetailReal() {
             if (data.sellerInfo?.address && connectedWallet.toLowerCase() === data.sellerInfo.address.toLowerCase()) {
               console.log('User is the seller');
               setUserRole('seller');
-            } else {
-              console.log('User is not the seller');
+            } else if (data.buyerInfo?.address && connectedWallet.toLowerCase() === data.buyerInfo.address.toLowerCase()) {
+              console.log('User is the buyer');
               setUserRole('buyer');
+            } else {
+              console.log('User is not the seller or buyer');
+              setUserRole(null);
             }
           } else {
             console.log('No wallet connected');
@@ -832,6 +835,34 @@ export function TradeDetailReal() {
     }
   `;
 
+  // Add new component for private trade view
+  const PrivateTradeView = ({ isAuthenticated }: { isAuthenticated: boolean }) => {
+    return (
+      <div className="text-center py-8">
+        <Lock className="mx-auto h-12 w-12 text-gray-500" />
+        <h3 className="mt-2 text-lg font-medium text-gray-900">
+          {isAuthenticated ? "You are not a participant in this trade" : "This trade is private"}
+        </h3>
+        <p className="mt-1 text-sm text-gray-500">
+          {isAuthenticated 
+            ? "Only the buyer and seller can access this trade's details."
+            : "This trade has already been taken. Please log in to check if you're the buyer or the seller involved."
+          }
+        </p>
+        {!isAuthenticated && (
+          <div className="mt-6">
+            <button
+              onClick={() => connect({ connector: connectors[0] })}
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Login to view the trade
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -861,10 +892,10 @@ export function TradeDetailReal() {
           </p>
           <div className="mt-6">
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/dashboard')}
               className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
-              Go to Home
+              Go to Trades
             </button>
           </div>
         </div>
@@ -1408,178 +1439,163 @@ export function TradeDetailReal() {
             Back to trades
           </a>
         </div>
+
         {/* Status Section */}
         <div className="bg-white shadow-sm rounded-lg p-6">
           <div className="flex justify-between items-start mb-6">
             <div className="title-container">
               <h1 className="text-2xl font-bold text-gray-900">Trade #{trade?.tradeId ?? ''}</h1>
-            
-              {/* Mobile-only status badge - moved before timers */}
-              <div className="mobile-status-badge">
-                {timeLeft === 'Expired' ? (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                    <XCircle className="w-4 h-4 mr-1" />
-                    Expired
-                  </span>
-                ) : (
-                  <StatusBadge />
-                )}
-              </div>
-            
-              {trade.status === 'Created' && timeLeft && timeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
-                  <Clock className="w-4 h-4 mr-1 text-red-400" />
-                  Time left to pay: {timeLeft}
-                </div>
-              )}
-              {userRole === 'seller' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
-                  <Clock className="w-4 h-4 mr-1 text-red-400" />
-                  Time left to transfer the tickets: {paidTimeLeft}
-                </div>
-              )}
-              {userRole === 'buyer' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
-                <>
-                  <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
-                    <Clock className="w-4 h-4 mr-1 text-red-400" />
-                    Time left to receive your tickets: {paidTimeLeft}
-                  </div>
-                </>
-              )}
-              {userRole === 'seller' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-blue-700 bg-blue-50 rounded px-2 py-1 timer-container">
-                  <Clock className="w-4 h-4 mr-1 text-blue-400" />
-                  Time left to claim payment: {sentTimeLeft}
-                </div>
-              )}
-              {userRole === 'buyer' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
-                <div className="mt-2 inline-flex items-center text-sm text-yellow-700 bg-yellow-50 rounded px-2 py-1 timer-container">
-                  <Clock className="w-4 h-4 mr-1 text-yellow-400" />
-                  Time left to report a problem: {sentTimeLeft}
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-4 status-container">
-              {timeLeft === 'Expired' ? (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                  <XCircle className="w-4 h-4 mr-1" />
-                  Expired
-                </span>
-              ) : (
-                <StatusBadge />
-              )}
             </div>
           </div>
 
-          {/* Status Messages and CTAs */}
-          {renderStatusSection()}
-        </div>
+          {/* Show private view for non-Created trades when user is not logged in or not a participant */}
+          {(!connectedWallet && trade?.status !== 'Created' && timeLeft !== 'Expired') && (
+            <PrivateTradeView isAuthenticated={false} />
+          )}
 
-        {/* Share Instructions - Separate Card */}
-        {userRole === 'seller' && trade.status === 'Created' && timeLeft !== 'Expired' && (
-          <div className="bg-white shadow-sm rounded-lg p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Share with Buyer</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Trade Link</label>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-gray-50 p-3 rounded-md font-mono text-sm break-all">{tradeUrl}</div>
-                  <button onClick={() => copyToClipboard(tradeUrl)} className="p-2 text-gray-400 hover:text-gray-500" title="Copy link">
-                    <Copy className="h-5 w-5" />
-                  </button>
-                </div>
-                {showCopiedMessage && <p className="mt-1 text-sm text-green-600">Copied to clipboard!</p>}
-              </div>
-              <div className="bg-blue-50 border-l-4 border-blue-400 p-4">
-                <div className="flex">
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-blue-800">Next Steps:</h3>
-                    <div className="mt-2 text-sm text-blue-700">
-                      <ol className="list-decimal pl-5 space-y-2">
-                        <li>Share this link with your buyer</li>
-                        <li>The buyer will need to deposit {finalPrice} USDC to secure the tickets</li>
-                        <li>Once payment is received, you'll be notified to transfer the tickets</li>
-                        <li>After successful transfer and buyer confirmation, you'll receive {(totalPrice * 0.95).toFixed(2)} USDC</li>
-                      </ol>
+          {/* Show private view for authenticated users who are not participants */}
+          {(connectedWallet && userRole === null && trade?.status !== 'Created' && timeLeft !== 'Expired') && (
+            <PrivateTradeView isAuthenticated={true} />
+          )}
+
+          {/* Show full trade details for Created trades or for participants */}
+          {((connectedWallet && (userRole === 'buyer' || userRole === 'seller')) || 
+            (!connectedWallet && trade?.status === 'Created') ||
+            (connectedWallet && trade?.status === 'Created' && timeLeft === 'Expired') ||
+            (!connectedWallet && timeLeft === 'Expired')) && (
+            <>
+              <div className="flex justify-between items-start mb-6">
+                <div className="title-container">
+                  {/* Mobile-only status badge - moved before timers */}
+                  <div className="mobile-status-badge">
+                    {timeLeft === 'Expired' ? (
+                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Expired
+                      </span>
+                    ) : (
+                      <StatusBadge />
+                    )}
+                  </div>
+                
+                  {trade.status === 'Created' && timeLeft && timeLeft !== 'Expired' && (
+                    <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
+                      <Clock className="w-4 h-4 mr-1 text-red-400" />
+                      Time left to pay: {timeLeft}
                     </div>
-                  </div>
+                  )}
+                  {userRole === 'seller' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
+                    <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
+                      <Clock className="w-4 h-4 mr-1 text-red-400" />
+                      Time left to transfer the tickets: {paidTimeLeft}
+                    </div>
+                  )}
+                  {userRole === 'buyer' && trade.status === 'Paid' && paidTimeLeft && paidTimeLeft !== 'Expired' && (
+                    <>
+                      <div className="mt-2 inline-flex items-center text-sm text-red-600 bg-red-50 rounded px-2 py-1 timer-container">
+                        <Clock className="w-4 h-4 mr-1 text-red-400" />
+                        Time left to receive your tickets: {paidTimeLeft}
+                      </div>
+                    </>
+                  )}
+                  {userRole === 'seller' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
+                    <div className="mt-2 inline-flex items-center text-sm text-blue-700 bg-blue-50 rounded px-2 py-1 timer-container">
+                      <Clock className="w-4 h-4 mr-1 text-blue-400" />
+                      Time left to claim payment: {sentTimeLeft}
+                    </div>
+                  )}
+                  {userRole === 'buyer' && trade.status === 'Sent' && sentTimeLeft && sentTimeLeft !== 'Expired' && (
+                    <div className="mt-2 inline-flex items-center text-sm text-yellow-700 bg-yellow-50 rounded px-2 py-1 timer-container">
+                      <Clock className="w-4 h-4 mr-1 text-yellow-400" />
+                      Time left to report a problem: {sentTimeLeft}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 status-container">
+                  {timeLeft === 'Expired' ? (
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      <XCircle className="w-4 h-4 mr-1" />
+                      Expired
+                    </span>
+                  ) : (
+                    <StatusBadge />
+                  )}
                 </div>
               </div>
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0"><AlertTriangle className="h-5 w-5 text-yellow-400" /></div>
-                  <div className="ml-3">
-                    <p className="text-sm text-yellow-700">
-                      <strong>Important:</strong> This trade link will expire in 12 hours if no payment is received.
-                    </p>
+
+              {/* Status Messages and CTAs */}
+              {renderStatusSection()}
+            </>
+          )}
+        </div>
+
+        {/* Only show these sections for Created trades or for participants */}
+        {((connectedWallet && (userRole === 'buyer' || userRole === 'seller')) || 
+          (!connectedWallet && trade?.status === 'Created' && timeLeft !== 'Expired')) && (
+          <>
+            {/* Event Details */}
+            <div className="bg-white shadow-sm rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Event</span>
+                  <span className="text-gray-900 font-medium">{trade.eventName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Date</span>
+                  <span className="text-gray-900">{trade.eventDate}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Location</span>
+                  <span className="text-gray-900">{trade.eventLocation}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Section & Row</span>
+                  <span className="text-gray-900">{trade.eventSection}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Number of Tickets</span>
+                  <span className="text-gray-900">{trade.numberOfTickets}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Price Details */}
+            <div className="bg-white shadow-sm rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
+              <div className="space-y-4">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Price per Ticket</span>
+                  <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Subtotal</span>
+                  <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Service Fee (5%)</span>
+                  <span className="text-gray-900">${buyerFee.toFixed(2)}</span>
+                </div>
+                <div className="border-t pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-900 font-medium">Total</span>
+                    <span className="text-gray-900 font-medium">${finalPrice.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
+
+            {/* Seller/Buyer Info */}
+            <div className="bg-white shadow-sm rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">
+                {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
+              </h2>
+              <div className="flex items-center justify-between">
+                {renderSellerInfo()}
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Event Details */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Event Details</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Event</span>
-              <span className="text-gray-900 font-medium">{trade.eventName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Date</span>
-              <span className="text-gray-900">{trade.eventDate}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Location</span>
-              <span className="text-gray-900">{trade.eventCity}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Section & Row</span>
-              <span className="text-gray-900">{trade.eventSection}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Number of Tickets</span>
-              <span className="text-gray-900">{trade.numberOfTickets || 0}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Price Breakdown */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Price Details</h2>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Price per Ticket</span>
-              <span className="text-gray-900">${trade.pricePerTicket.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal</span>
-              <span className="text-gray-900">${totalPrice.toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">Service Fee (5%)</span>
-              <span className="text-gray-900">${buyerFee.toFixed(2)}</span>
-            </div>
-            <div className="border-t pt-4">
-              <div className="flex justify-between">
-                <span className="text-gray-900 font-medium">Total</span>
-                <span className="text-gray-900 font-medium">${finalPrice.toFixed(2)}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Seller/Buyer Info */}
-        <div className="bg-white shadow-sm rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
-            {userRole === 'seller' && trade.status !== 'Created' ? 'Buyer Information' : 'Seller Information'}
-          </h2>
-          <div className="flex items-center justify-between">
-            {renderSellerInfo()}
-          </div>
-        </div>
 
         <ConfirmationModal />
         <TransferConfirmationModal />
@@ -1589,13 +1605,11 @@ export function TradeDetailReal() {
           onSuccess={() => setUserExists(true)}
           address={isConnected || ''}
         />
-        
-        <InsufficientBalanceModal
+        <InsufficientBalanceModal 
           isOpen={showInsufficientBalanceModal}
           onClose={() => setShowInsufficientBalanceModal(false)}
           onDeposit={handleDeposit}
         />
-
         <PaymentModal 
           isOpen={isPaymentModalOpen}
           onClose={() => setIsPaymentModalOpen(false)}

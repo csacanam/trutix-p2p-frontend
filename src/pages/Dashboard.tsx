@@ -116,7 +116,7 @@ export function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { address } = useAccount();
+  const { address, chain, isConnected } = useAccount();
   const { connect } = useConnect();
   const { data: balance, refetch: refetchBalance } = useBalance({
     address,
@@ -903,6 +903,38 @@ export function Dashboard() {
       }
     }
   `;
+
+  useEffect(() => {
+    if (address) {
+      console.log('Environment check:', {
+        isTestnet: import.meta.env.VITE_USE_TESTNET,
+        contractAddress: import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS,
+        usdcAddress: import.meta.env.VITE_USDC_ADDRESS,
+        backendUrl: import.meta.env.VITE_BACKEND_URL
+      });
+
+      console.log('Network check:', {
+        chainId: chain?.id,
+        chainName: chain?.name,
+        isConnected: isConnected,
+        walletAddress: address
+      });
+    }
+  }, [address, chain, isConnected]);
+
+  // Add this near the top of the component, after the state declarations
+  useEffect(() => {
+    const checkEnvironment = () => {
+      console.log('Dashboard Environment Variables:', {
+        VITE_USE_TESTNET: import.meta.env.VITE_USE_TESTNET,
+        VITE_TRUTIX_CONTRACT_ADDRESS: import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS,
+        VITE_USDC_ADDRESS: import.meta.env.VITE_USDC_ADDRESS,
+        VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL
+      });
+    };
+
+    checkEnvironment();
+  }, []);
 
   if (loading && address) {
     return (

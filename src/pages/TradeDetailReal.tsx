@@ -828,9 +828,18 @@ export function TradeDetailReal() {
     }
 
     try {
+      console.log('Environment check:', {
+        isTestnet: import.meta.env.VITE_USE_TESTNET,
+        contractAddress: TRUTIX_CONTRACT_ADDRESS,
+        usdcAddress: USDC_ADDRESS,
+        backendUrl: import.meta.env.VITE_BACKEND_URL
+      });
+
       console.log('Initiating dispute transaction...');
       console.log('Contract address:', TRUTIX_CONTRACT_ADDRESS);
       console.log('Trade ID:', trade.tradeId);
+      console.log('Connected wallet:', connectedWallet);
+      console.log('Current balance:', balance?.formatted);
       
       setDisputeStatus('pending');
       setDisputeError('');
@@ -846,6 +855,13 @@ export function TradeDetailReal() {
       setDisputeTxHash(hash);
     } catch (error) {
       console.error('Error in dispute transaction:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          name: error.name,
+          stack: error.stack
+        });
+      }
       setDisputeStatus('error');
       setDisputeError('Transaction failed. Please try again.');
     }
@@ -963,6 +979,26 @@ export function TradeDetailReal() {
       </div>
     );
   };
+
+  // Add debug logs for balance and contract addresses
+  useEffect(() => {
+    if (connectedWallet) {
+      console.log('Environment check:', {
+        isTestnet: import.meta.env.VITE_USE_TESTNET,
+        contractAddress: TRUTIX_CONTRACT_ADDRESS,
+        usdcAddress: USDC_ADDRESS,
+        backendUrl: import.meta.env.VITE_BACKEND_URL
+      });
+
+      console.log('Balance check:', {
+        address: connectedWallet,
+        balance: balance?.formatted,
+        symbol: balance?.symbol,
+        decimals: balance?.decimals,
+        raw: balance?.value
+      });
+    }
+  }, [connectedWallet, balance]);
 
   if (loading) {
     return (

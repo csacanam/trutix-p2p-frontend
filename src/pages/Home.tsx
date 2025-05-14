@@ -16,12 +16,13 @@ export function Home() {
               <span className="block text-blue-600">Ticket Trading</span>
             </h1>
             <p className="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-              Buy and sell event tickets directly using USDC. Smart contracts hold the money until the ticket is delivered.
+              Buy and sell tickets safely — no middlemen, no scams
+              Your money is held securely and only released once the ticket is received.
             </p>
             <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link to="/dashboard" className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
-                  Create Trade
+                  Start Trading
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
                 <Link to="/faq" className="w-full sm:w-auto min-w-[200px] inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200">
@@ -37,10 +38,18 @@ export function Home() {
       <div className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">What is Trutix P2P?</h2>
-            <p className="mt-4 text-lg text-gray-500">
-              Trutix P2P lets two people trade event tickets safely without needing to trust each other.
+            <h2 className="text-3xl font-extrabold text-gray-900">🤝 What is Trutix P2P?</h2>
+            <div className="mt-4 space-y-2">
+            <p className="text-lg text-gray-500">
+              Trutix P2P lets two people trade event tickets safely — no need to trust each other.
             </p>
+            <p className="text-lg text-gray-500">
+              We use secure technology to hold the payment until the ticket is transferred.
+            </p>
+            <p className="text-lg text-gray-500">
+              That means no scams, no overpriced platforms, and no stress.
+            </p>
+          </div>
           </div>
 
           <div className="mt-16">
@@ -50,31 +59,31 @@ export function Home() {
                   <Ticket className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Create Trade</h3>
-                <p className="mt-2 text-base text-gray-500">Seller creates a trade and sets the price</p>
+                <p className="mt-2 text-base text-gray-500">The seller sets the price and creates the trade.</p>
               </div>
 
               <div className="text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white mx-auto">
                   <WalletIcon className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Secure Payment</h3>
-                <p className="mt-2 text-base text-gray-500">Buyer deposits USDC into smart contract</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Safe Payment</h3>
+                <p className="mt-2 text-base text-gray-500">The buyer deposits money into a secure system that holds it.</p>
               </div>
 
               <div className="text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white mx-auto">
                   <ArrowRight className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Transfer</h3>
-                <p className="mt-2 text-base text-gray-500">Seller transfers ticket via official platform</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Transfer the Ticket</h3>
+                <p className="mt-2 text-base text-gray-500">The seller sends the ticket through the official platform (Ticketmaster, etc.).</p>
               </div>
 
               <div className="text-center">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white mx-auto">
                   <CheckCircle2 className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Complete</h3>
-                <p className="mt-2 text-base text-gray-500">Smart contract releases payment to seller</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Payment Released </h3>
+                <p className="mt-2 text-base text-gray-500">Once confirmed, the seller gets paid instantly</p>
               </div>
             </div>
           </div>
@@ -85,7 +94,7 @@ export function Home() {
       <div className="py-16 bg-gradient-to-b from-white to-blue-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">Why use Trutix instead of StubHub or DMs?</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900">💡 Why use Trutix instead of StubHub or Group Chats?</h2>
           </div>
 
           <div className="mt-16">
@@ -95,7 +104,7 @@ export function Home() {
                   <DollarSign className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Lower Fees</h3>
-                <p className="mt-2 text-base text-gray-500">We only charge 10% total (5% buyer, 5% seller) compared to StubHub's 20-30%</p>
+                <p className="mt-2 text-base text-gray-500">Just 10% total (5% buyer, 5% seller), compared to 20–30% on other platforms</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-transform duration-300">
@@ -103,15 +112,15 @@ export function Home() {
                   <Clock className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Instant Payouts</h3>
-                <p className="mt-2 text-base text-gray-500">Get paid instantly after ticket transfer — no need to wait weeks or months.</p>
+                <p className="mt-2 text-base text-gray-500">Sellers get paid right after they transfer the ticket — no waiting.</p>
               </div>
 
               <div className="bg-white rounded-xl shadow-lg p-8 transform hover:scale-105 transition-transform duration-300">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <Shield className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Scam Protection</h3>
-                <p className="mt-2 text-base text-gray-500">Smart contracts ensure secure transactions with verified platform transfers only</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">No Scams</h3>
+                <p className="mt-2 text-base text-gray-500">Funds are only released when both sides complete their part.</p>
               </div>
             </div>
           </div>
@@ -123,10 +132,8 @@ export function Home() {
         <div className="absolute inset-0 bg-grid-gray-100 opacity-25"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">When to Use Trutix</h2>
-            <p className="mt-4 text-lg text-gray-500">
-              Perfect for these common scenarios:
-            </p>
+            <h2 className="text-3xl font-extrabold text-gray-900"> 🎯 When Should You Use Trutix?</h2>
+      
           </div>
 
           <div className="mt-16">
@@ -135,24 +142,24 @@ export function Home() {
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <Ticket className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Can't Attend an Event</h3>
-                <p className="mt-2 text-base text-gray-500">Securely sell your ticket to someone who can make it</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Can’t Make It to an Event?</h3>
+                <p className="mt-2 text-base text-gray-500">Sell your ticket securely to someone who can go.</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-lg p-8 border-t-4 border-blue-500">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <UserCheck className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Found a Buyer/Seller</h3>
-                <p className="mt-2 text-base text-gray-500">Trade safely with someone from Facebook Groups, WhatsApp, or Reddit</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Found a Buyer or Seller Online?</h3>
+                <p className="mt-2 text-base text-gray-500">Trade safely with someone from Reddit, Facebook, or WhatsApp.</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-lg p-8 border-t-4 border-blue-500">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <Shield className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Avoid Scams & Fees</h3>
-                <p className="mt-2 text-base text-gray-500">Skip high platform fees and protect yourself from scams</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Want to Avoid Scams or High Fees?</h3>
+                <p className="mt-2 text-base text-gray-500">Skip risky chats and overpriced platforms.</p>
               </div>
             </div>
           </div>
@@ -163,10 +170,8 @@ export function Home() {
       <div className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">What You Need to Trade</h2>
-            <p className="mt-4 text-lg text-gray-500">
-              Getting started is easy. Here's everything you need:
-            </p>
+            <h2 className="text-3xl font-extrabold text-gray-900">🧾 What You Need to Trade</h2>
+    
           </div>
 
           <div className="mt-16">
@@ -175,8 +180,8 @@ export function Home() {
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <Ticket className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">Transferable Ticket</h3>
-                <p className="mt-2 text-base text-gray-500">Must be transferable through supported platforms (we'll guide you)</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">A Transferable Ticket</h3>
+                <p className="mt-2 text-base text-gray-500">(We support official platforms like Ticketmaster. We’ll guide you.)</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-lg p-8 transform hover:-translate-y-1 transition-transform duration-300">
@@ -184,7 +189,7 @@ export function Home() {
                   <Mail className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Email Address</h3>
-                <p className="mt-2 text-base text-gray-500">For account creation and ticket transfer</p>
+                <p className="mt-2 text-base text-gray-500">To create your account and get updates.</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-lg p-8 transform hover:-translate-y-1 transition-transform duration-300">
@@ -192,15 +197,15 @@ export function Home() {
                   <Phone className="h-6 w-6" />
                 </div>
                 <h3 className="mt-6 text-lg font-medium text-gray-900">Phone Number</h3>
-                <p className="mt-2 text-base text-gray-500">For secure verification and updates</p>
+                <p className="mt-2 text-base text-gray-500">For verification and notifications.</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-lg p-8 transform hover:-translate-y-1 transition-transform duration-300">
                 <div className="flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
                   <CreditCard className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-lg font-medium text-gray-900">USDC</h3>
-                <p className="mt-2 text-base text-gray-500">We'll help you get USDC for the transaction</p>
+                <h3 className="mt-6 text-lg font-medium text-gray-900">Digital Dollars</h3>
+                <p className="mt-2 text-base text-gray-500">We use a stable digital currency equal to USD. Don’t worry — we’ll help you get it in minutes.</p>
               </div>
             </div>
           </div>
@@ -212,18 +217,18 @@ export function Home() {
         <div className="max-w-7xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h2 className="text-3xl font-extrabold">
-              Trade tickets directly. No middlemen. No trust needed.
+            Swap tickets safely, instantly, and on your own terms — without middlemen.
             </h2>
             <div className="mt-8 flex justify-center">
               <div className="w-full sm:w-auto">
                 <Link to="/dashboard" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50">
-                  Start Trading Now
+                  Start Trading
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </div>
               <div className="mt-0 sm:mt-0 sm:ml-3 w-full sm:w-auto">
                 <Link to="/faq" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border-2 border-white text-base font-medium rounded-md text-white hover:bg-blue-700">
-                  Read FAQs
+                🔍 Read the FAQs
                 </Link>
               </div>
             </div>

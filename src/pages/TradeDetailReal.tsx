@@ -821,17 +821,31 @@ export function TradeDetailReal() {
 
   // Modify the dispute button click handler
   const handleDisputeClick = async () => {
-    setDisputeStatus('pending');
-    setDisputeError('');
+    if (!writeContractAsync) {
+      console.error('writeContractAsync is not available');
+      setDisputeError('Wallet connection error. Please try again.');
+      return;
+    }
+
     try {
+      console.log('Initiating dispute transaction...');
+      console.log('Contract address:', TRUTIX_CONTRACT_ADDRESS);
+      console.log('Trade ID:', trade.tradeId);
+      
+      setDisputeStatus('pending');
+      setDisputeError('');
+
       const hash = await writeContractAsync({
         address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
         abi: TRUTIX_ABI,
         functionName: 'disputeTrade',
         args: [BigInt(trade.tradeId)],
       });
+
+      console.log('Dispute transaction hash:', hash);
       setDisputeTxHash(hash);
     } catch (error) {
+      console.error('Error in dispute transaction:', error);
       setDisputeStatus('error');
       setDisputeError('Transaction failed. Please try again.');
     }

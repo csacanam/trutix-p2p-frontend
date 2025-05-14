@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, AlertTriangle, Clock, ExternalLink } from 'lucide-react';
 import { useWriteContract, useTransaction, useAccount } from 'wagmi';
 import { TRUTIX_ABI } from '../constants/trutixAbi';
-import { decodeEventLog, erc20Abi, parseUnits } from 'viem';
+import { decodeEventLog, erc20Abi, parseUnits, encodeEventTopics } from 'viem';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -29,21 +29,35 @@ export function PaymentModal({ isOpen, onClose, tradeId, amount }: PaymentModalP
     if (transaction?.blockHash) {
       console.log('Smart contract payment successful, blockHash:', transaction.blockHash);
       console.log('Full transaction object:', transaction);
+      
       // Try to decode TradePaid event from logs
       if (transaction && Array.isArray((transaction as any).logs)) {
-        for (const log of (transaction as any).logs) {
-          try {
-            const decoded = decodeEventLog({
-              abi: TRUTIX_ABI,
-              data: log.data,
-              topics: log.topics,
-            });
-            if (decoded.eventName === 'TradePaid') {
-              console.log('TradePaid event:', decoded.args);
-            }
-          } catch (err) {
-            // Ignore decode errors for non-matching logs
-          }
+        const eventTopic = encodeEventTopics({
+          abi: TRUTIX_ABI,
+          eventName: 'TradePaid'
+        })[0];
+
+        const tradePaidLog = (transaction as any).logs.find(log => {
+          console.log('Checking log:', {
+            address: log.address,
+            contractAddress: TRUTIX_CONTRACT_ADDRESS,
+            topics: log.topics
+          });
+          
+          return log.address.toLowerCase() === TRUTIX_CONTRACT_ADDRESS.toLowerCase() &&
+                 log.topics[0] === eventTopic;
+        });
+
+        if (tradePaidLog) {
+          console.log('Found TradePaid log:', tradePaidLog);
+          const decoded = decodeEventLog({
+            abi: TRUTIX_ABI,
+            data: tradePaidLog.data,
+            topics: tradePaidLog.topics,
+          });
+          console.log('TradePaid event:', decoded.args);
+        } else {
+          console.error('TradePaid event not found in transaction logs');
         }
       }
       setTransactionStatus('success');

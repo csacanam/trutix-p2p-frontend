@@ -7,7 +7,7 @@ import { ProfileModal } from '../components/ProfileModal';
 import { InsufficientBalanceModal } from '../components/InsufficientBalanceModal';
 import { PaymentModal } from '../components/PaymentModal';
 import { TRUTIX_ABI } from '../constants/trutixAbi';
-import { decodeEventLog } from 'viem';
+import { decodeEventLog, encodeEventTopics } from 'viem';
 
 interface ProfileForm {
   firstName: string;
@@ -85,6 +85,8 @@ export function TradeDetailReal() {
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeStatus, setDisputeStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
   const [disputeError, setDisputeError] = useState('');
+  const [disputeTxHash, setDisputeTxHash] = useState<`0x${string}` | undefined>();
+  const { data: disputeTx } = useTransaction({ hash: disputeTxHash });
 
   useEffect(() => {
     if (!tradeId) {
@@ -648,11 +650,14 @@ export function TradeDetailReal() {
 
   // Add effect to handle transfer transaction
   useEffect(() => {
-    if (transferTx?.blockHash && transferStatus === 'pending') {
+    if (transferTx?.blockHash) {
+      console.log('Smart contract transfer successful, blockHash:', transferTx.blockHash);
       setTransferStatus('success');
-      // Update backend to Sent
+      
+      // Update backend trade status to Sent
       (async () => {
         try {
+          // Fetch the user's Airtable recordId
           let recordId = connectedWallet;
           try {
             const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${connectedWallet}`);
@@ -661,37 +666,49 @@ export function TradeDetailReal() {
               recordId = userData.recordId;
             }
           } catch (err) {
-            console.error('Error getting user recordId:', err);
+            console.error('Error fetching user recordId:', err);
           }
-          if (!trade) return;
-          await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade?.tradeId}`, {
+
+          console.log('Invoking backend to update trade status to Sent...');
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               status: 'Sent',
-              lastUpdatedBy: recordId,
               sentAt: new Date().toISOString(),
+              lastUpdatedBy: recordId
             }),
           });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          console.log('Backend update successful');
+          setShowTransferModal(false);
           setTimeout(() => {
             window.location.reload();
           }, 1200);
         } catch (err) {
+          console.error('Error updating trade in backend:', err);
           setTransferStatus('error');
           setTransferError('Transfer succeeded but failed to update backend. Please refresh.');
         }
       })();
-    } else if (transferTx?.blockHash === null && transferStatus === 'pending') {
+    } else if (transferTx?.blockHash === null) {
+      console.log('Smart contract transfer failed.');
       setTransferStatus('error');
       setTransferError('Transaction failed. Please try again.');
     }
-  }, [transferTx, transferStatus, trade?.tradeId, connectedWallet]);
+  }, [transferTx, tradeId, connectedWallet]);
 
   // Add effect to handle claim payment transaction
   useEffect(() => {
-    if (claimTx?.blockHash && claimStatus === 'pending') {
+    if (claimTx?.blockHash) {
+      console.log('Smart contract claim successful, blockHash:', claimTx.blockHash);
       setClaimStatus('success');
-      // Update backend to Completed and paymentClaimed
+      
+      // Update backend to Completed
       (async () => {
         try {
           let recordId = connectedWallet;
@@ -704,8 +721,8 @@ export function TradeDetailReal() {
           } catch (err) {
             console.error('Error getting user recordId:', err);
           }
-          if (!trade) return;
-          await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade?.tradeId}`, {
+
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -716,19 +733,109 @@ export function TradeDetailReal() {
               paymentClaimedAt: new Date().toISOString(),
             }),
           });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          console.log('Backend update successful');
           setTimeout(() => {
             window.location.reload();
           }, 1200);
         } catch (err) {
+          console.error('Error updating trade in backend:', err);
           setClaimStatus('error');
           setClaimError('Payment claim succeeded but failed to update backend. Please refresh.');
         }
       })();
-    } else if (claimTx?.blockHash === null && claimStatus === 'pending') {
+    } else if (claimTx?.blockHash === null) {
+      console.log('Smart contract claim failed.');
       setClaimStatus('error');
       setClaimError('Transaction failed. Please try again.');
     }
-  }, [claimTx, claimStatus, trade?.tradeId, connectedWallet]);
+  }, [claimTx, tradeId, connectedWallet]);
+
+  // Add effect to handle dispute transaction
+  useEffect(() => {
+    if (disputeTx?.blockHash) {
+      console.log('Smart contract dispute successful, blockHash:', disputeTx.blockHash);
+      
+      // Update backend to Dispute
+      (async () => {
+        try {
+          // Fetch the user's Airtable recordId
+          let recordId = connectedWallet;
+          try {
+            const userRes = await fetch(`${import.meta.env.VITE_BACKEND_URL}/users/${connectedWallet}`);
+            const userData = await userRes.json();
+            if (userData.recordId) {
+              recordId = userData.recordId;
+            }
+          } catch (err) {
+            console.error('Error fetching user recordId:', err);
+          }
+
+          console.log('Invoking backend to update trade status to Dispute...');
+          const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${tradeId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              status: 'Dispute',
+              disputedAt: new Date().toISOString(),
+              lastUpdatedBy: recordId
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Backend update failed:', {
+              status: response.status,
+              statusText: response.statusText,
+              body: errorText
+            });
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const updatedTrade = await response.json();
+          console.log('Backend update successful:', updatedTrade);
+          
+          setDisputeStatus('success');
+          setShowDisputeModal(false);
+          
+          // Esperar un momento y recargar la página
+          setTimeout(() => {
+            window.location.reload();
+          }, 1200);
+        } catch (err) {
+          console.error('Error updating trade in backend:', err);
+          setDisputeStatus('error');
+          setDisputeError('Dispute succeeded but failed to update backend. Please refresh.');
+        }
+      })();
+    } else if (disputeTx?.blockHash === null) {
+      console.log('Smart contract dispute failed.');
+      setDisputeStatus('error');
+      setDisputeError('Transaction failed. Please try again.');
+    }
+  }, [disputeTx, tradeId, connectedWallet]);
+
+  // Modify the dispute button click handler
+  const handleDisputeClick = async () => {
+    setDisputeStatus('pending');
+    setDisputeError('');
+    try {
+      const hash = await writeContractAsync({
+        address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
+        abi: TRUTIX_ABI,
+        functionName: 'disputeTrade',
+        args: [BigInt(trade.tradeId)],
+      });
+      setDisputeTxHash(hash);
+    } catch (error) {
+      setDisputeStatus('error');
+      setDisputeError('Transaction failed. Please try again.');
+    }
+  };
 
   // 2. Modal de disputa
   const DisputeModal = () => {
@@ -761,35 +868,7 @@ export function TradeDetailReal() {
               Cancel
             </button>
             <button
-              onClick={async () => {
-                setDisputeStatus('pending');
-                setDisputeError('');
-                try {
-                  // 1. Ejecutar disputeTrade en el contrato
-                  await writeContractAsync({
-                    address: TRUTIX_CONTRACT_ADDRESS as `0x${string}`,
-                    abi: TRUTIX_ABI,
-                    functionName: 'disputeTrade',
-                    args: [BigInt(trade.tradeId)],
-                  });
-                  // 2. Actualizar backend
-                  await fetch(`${import.meta.env.VITE_BACKEND_URL}/trades/${trade.tradeId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                      status: 'Dispute',
-                      disputedAt: new Date().toISOString(),
-                    }),
-                  });
-                  setDisputeStatus('success');
-                  setShowDisputeModal(false);
-                  // Refrescar trade
-                  window.location.reload();
-                } catch (err: any) {
-                  setDisputeStatus('error');
-                  setDisputeError('There was a problem submitting your dispute. Please try again.');
-                }
-              }}
+              onClick={handleDisputeClick}
               className={`px-4 py-2 rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700 ${disputeStatus === 'pending' ? 'opacity-60 cursor-not-allowed' : ''}`}
               disabled={disputeStatus === 'pending'}
             >
@@ -1160,12 +1239,34 @@ export function TradeDetailReal() {
     if (trade.status === 'Created' && !isCreatedExpired) {
       if (userRole === 'seller') {
         return (
-          <div className="text-center">
+          <div className="text-center space-y-6">
             <Clock className="mx-auto h-12 w-12 text-yellow-500" />
             <h3 className="mt-2 text-lg font-medium text-gray-900">Waiting for Payment</h3>
             <p className="mt-1 text-sm text-gray-500">
               Share the trade link with your buyer. You'll be notified once payment is received.
             </p>
+            
+            {/* Share Link Section */}
+            <div className="bg-white shadow-sm rounded-lg p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Share Trade Link</h2>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={tradeUrl}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                />
+                <button
+                  onClick={() => handleCopy(tradeUrl, 'link')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700"
+                >
+                  {copiedField === 'link' ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+              <p className="mt-2 text-sm text-gray-500">
+                Send this link to your buyer. They'll be able to view the trade details and make the payment.
+              </p>
+            </div>
           </div>
         );
       }

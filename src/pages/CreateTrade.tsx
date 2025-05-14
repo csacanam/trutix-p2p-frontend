@@ -5,7 +5,7 @@ import { useAccount, useWriteContract, useTransactionReceipt } from 'wagmi';
 import axios from 'axios';
 import { TRUTIX_ABI } from '../constants/trutixAbi';
 import { parseUnits } from 'viem';
-import { decodeAbiParameters, decodeEventLog } from 'viem';
+import { decodeAbiParameters, decodeEventLog, encodeEventTopics } from 'viem';
 
 interface ProfileForm {
   firstName: string;
@@ -104,11 +104,25 @@ export function CreateTrade() {
         console.log('Transaction confirmed! Block hash:', receipt.blockHash);
         
         // Find the TradeCreated event log
-        const tradeCreatedLog = receipt.logs.find(log => 
-          log.address.toLowerCase() === import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS.toLowerCase()
-        );
+        const tradeCreatedLog = receipt.logs.find(log => {
+          // Log para debugging
+          console.log('Checking log:', {
+            address: log.address,
+            contractAddress: import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS,
+            topics: log.topics
+          });
+          
+          const eventTopic = encodeEventTopics({
+            abi: TRUTIX_ABI,
+            eventName: 'TradeCreated'
+          })[0];
+          
+          return log.address.toLowerCase() === import.meta.env.VITE_TRUTIX_CONTRACT_ADDRESS.toLowerCase() &&
+                 log.topics[0] === eventTopic;
+        });
 
         if (tradeCreatedLog) {
+          console.log('Found TradeCreated log:', tradeCreatedLog);
           // Decode the event using the contract ABI
           const event = decodeEventLog({
             abi: TRUTIX_ABI,

@@ -103,7 +103,15 @@ export function TradeDetailReal() {
         
         if (response.ok) {
           const data = await response.json();
-          console.log('Trade data:', data);
+          console.log('Trade data received:', {
+            id: data.id,
+            status: data.status,
+            createdAt: data.createdAt,
+            sellerInfo: data.sellerInfo,
+            buyerInfo: data.buyerInfo,
+            amount: data.amount,
+            ticketDetails: data.ticketDetails
+          });
           setTrade(data);
           
           // Determine user role based on the connected wallet
@@ -1459,10 +1467,8 @@ export function TradeDetailReal() {
           )}
 
           {/* Show full trade details for Created trades or for participants */}
-          {((connectedWallet && (userRole === 'buyer' || userRole === 'seller')) || 
-            (!connectedWallet && trade?.status === 'Created') ||
-            (connectedWallet && trade?.status === 'Created' && timeLeft === 'Expired') ||
-            (!connectedWallet && timeLeft === 'Expired')) && (
+          {((trade?.status === 'Created' && timeLeft !== 'Expired') || 
+            (connectedWallet && (userRole === 'buyer' || userRole === 'seller'))) && (
             <>
               <div className="flex justify-between items-start mb-6">
                 <div className="title-container">
@@ -1530,8 +1536,8 @@ export function TradeDetailReal() {
         </div>
 
         {/* Only show these sections for Created trades or for participants */}
-        {((connectedWallet && (userRole === 'buyer' || userRole === 'seller')) || 
-          (!connectedWallet && trade?.status === 'Created' && timeLeft !== 'Expired')) && (
+        {((trade?.status === 'Created' && timeLeft !== 'Expired') || 
+          (connectedWallet && (userRole === 'buyer' || userRole === 'seller'))) && (
           <>
             {/* Event Details */}
             <div className="bg-white shadow-sm rounded-lg p-6">

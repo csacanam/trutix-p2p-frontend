@@ -170,7 +170,7 @@ export function Home() {
       <div className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900">🧾 What You Need to Trade</h2>
+            <h2 className="text-3xl font-extrabold text-gray-900">What You Need to Trade</h2>
     
           </div>
 
@@ -228,7 +228,7 @@ export function Home() {
               </div>
               <div className="mt-0 sm:mt-0 sm:ml-3 w-full sm:w-auto">
                 <Link to="/faq" className="w-full sm:w-auto inline-flex items-center justify-center px-8 py-4 border-2 border-white text-base font-medium rounded-md text-white hover:bg-blue-700">
-                🔍 Read the FAQs
+                Read FAQs
                 </Link>
               </div>
             </div>
